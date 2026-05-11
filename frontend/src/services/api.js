@@ -33,53 +33,53 @@ api.interceptors.response.use(
 
 // ---- Auth API ----
 export const authAPI = {
-  login: (data) => api.post('/auth/login', data),
-  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('auth/login', data),
+  register: (data) => api.post('auth/register', data),
 };
 
 // ---- Product API ----
 export const productAPI = {
   getAll: (page = 0, size = 20, search = '') =>
-    api.get('/products', { params: { page, size, search } }),
-  getById: (id) => api.get(`/products/${id}`),
-  create: (data) => api.post('/products', data),
-  update: (id, data) => api.put(`/products/${id}`, data),
-  delete: (id) => api.delete(`/products/${id}`),
-  getLowStock: () => api.get('/products/low-stock'),
-  getCategories: () => api.get('/products/categories'),
+    api.get('products', { params: { page, size, search } }),
+  getById: (id) => api.get(`products/${id}`),
+  create: (data) => api.post('products', data),
+  update: (id, data) => api.put(`products/${id}`, data),
+  delete: (id) => api.delete(`products/${id}`),
+  getLowStock: () => api.get('products/low-stock'),
+  getCategories: () => api.get('products/categories'),
   calculatePrice: (id, quantity, unit) =>
-    api.get(`/products/${id}/calculate-price`, { params: { quantity, unit } }),
+    api.get(`products/${id}/calculate-price`, { params: { quantity, unit } }),
 };
 
 // ---- Sales API ----
 export const saleAPI = {
-  create: (data) => api.post('/sales', data),
-  getById: (id) => api.get(`/sales/${id}`),
-  getByBill: (billNumber) => api.get(`/sales/bill/${billNumber}`),
+  create: (data) => api.post('sales', data),
+  getById: (id) => api.get(`sales/${id}`),
+  getByBill: (billNumber) => api.get(`sales/bill/${billNumber}`),
   getAll: (page = 0, size = 20) =>
-    api.get('/sales', { params: { page, size } }),
+    api.get('sales', { params: { page, size } }),
 };
 
 // ---- Dashboard API ----
 export const dashboardAPI = {
-  getData: () => api.get('/dashboard'),
+  getData: () => api.get('dashboard'),
 };
 
 // ---- Order API ----
 export const orderAPI = {
-  create: (data) => api.post('/orders', data),
+  create: (data) => api.post('orders', data),
   getAll: (page = 0, size = 20) =>
-    api.get('/orders', { params: { page, size } }),
+    api.get('orders', { params: { page, size } }),
   updateStatus: (id, status) =>
-    api.put(`/orders/${id}/status`, null, { params: { status } }),
-  getMyOrders: () => api.get('/orders/my-orders'),
-  cancelMyOrder: (id) => api.put(`/orders/my-orders/${id}/cancel`),
+    api.put(`orders/${id}/status`, null, { params: { status } }),
+  getMyOrders: () => api.get('orders/my-orders'),
+  cancelMyOrder: (id) => api.put(`orders/my-orders/${id}/cancel`),
 };
 
 // ---- Customer API ----
 export const customerAPI = {
-  getAll: () => api.get('/customers'),
-  search: (name) => api.get('/customers/search', { params: { name } }),
+  getAll: () => api.get('customers'),
+  search: (name) => api.get('customers/search', { params: { name } }),
 };
 
 export default api;

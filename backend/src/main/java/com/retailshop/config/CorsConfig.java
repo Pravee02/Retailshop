@@ -18,11 +18,12 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-config.setAllowedOriginPatterns(Arrays.asList(
-    "http://localhost:*",
-    "http://127.0.0.1:*",
-    "https://retailshop-theta.vercel.app"
-));        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://retailshop-theta.vercel.app"
+        ));
+        config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
 
