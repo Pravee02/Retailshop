@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
-import { FiUser, FiLock, FiLogIn, FiEye, FiEyeOff, FiPhone, FiArrowLeft, FiCheckCircle, FiBox, FiTrendingUp, FiShoppingBag, FiTruck } from 'react-icons/fi';
+import { FiUser, FiLock, FiLogIn, FiEye, FiEyeOff, FiPhone, FiArrowLeft, FiCheckCircle, FiBox, FiTrendingUp, FiShoppingBag, FiTruck, FiMenu, FiX } from 'react-icons/fi';
 import './Login.css';
 
 import './Landing.css';
@@ -17,6 +17,7 @@ export default function CustomerAuth() {
   const [formData, setFormData] = useState({ name: '', password: '', phone: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,6 +63,7 @@ export default function CustomerAuth() {
             <span style={{ fontSize: '2rem' }}>🛒</span>
             <h1 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--primary)', fontWeight: 800 }}>RetailShop</h1>
           </div>
+          
           <nav className="landing-nav">
             <a href="#" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Home</a>
             <a href="#features" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Features</a>
@@ -69,7 +71,39 @@ export default function CustomerAuth() {
             <a href="#contact" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Contact</a>
             <button className="btn btn-outline btn-sm" onClick={() => navigate('/login')}>Admin Login</button>
           </nav>
+
+          <button className="hamburger-btn" onClick={() => setMobileMenuOpen(true)}>
+            <FiMenu />
+          </button>
         </header>
+
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div className="mobile-nav-overlay" onClick={() => setMobileMenuOpen(false)}>
+            <div className="mobile-nav-drawer" onClick={e => e.stopPropagation()}>
+              <div className="mobile-nav-header">
+                <div className="landing-brand">
+                  <span style={{ fontSize: '1.5rem' }}>🛒</span>
+                  <h2 style={{ fontSize: '1.2rem', color: 'var(--primary)', fontWeight: 800 }}>RetailShop</h2>
+                </div>
+                <button className="btn btn-ghost btn-icon" onClick={() => setMobileMenuOpen(false)}>
+                  <FiX />
+                </button>
+              </div>
+              <div className="mobile-nav-body">
+                <a href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Home</a>
+                <a href="#features" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Features</a>
+                <a href="#about" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>About</a>
+                <a href="#contact" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Contact</a>
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                  <button className="btn btn-primary w-full" onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}>
+                    Admin Login
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* HERO SECTION */}
         <main style={{ flex: 1 }}>
@@ -132,6 +166,7 @@ export default function CustomerAuth() {
       </div>
     );
   }
+
 
 
   // AUTH VIEW (LOGIN / REGISTER)
