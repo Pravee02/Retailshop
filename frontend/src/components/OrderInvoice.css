@@ -1,0 +1,132 @@
+/* Order Invoice Print Styles */
+.invoice-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  color: #1a1a1a;
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.invoice-header {
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.invoice-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.invoice-header p {
+  font-size: 13px;
+  color: #555;
+  margin-top: 4px;
+}
+
+.invoice-divider {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding: 12px 0;
+  border-bottom: 1px dashed #ccc;
+  color: #333;
+}
+
+.invoice-meta {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.invoice-table th {
+  background: #f5f5f5;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 2px solid #ddd;
+  color: #333;
+}
+
+.invoice-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  color: #333;
+}
+
+.invoice-totals {
+  margin-left: auto;
+  width: 280px;
+  padding: 16px 0;
+}
+
+.invoice-totals .total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.invoice-totals .grand-total {
+  font-size: 20px;
+  font-weight: 800;
+  border-top: 2px solid #1a1a1a;
+  padding-top: 12px;
+  margin-top: 8px;
+  color: #1a1a1a;
+}
+
+.invoice-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed #ccc;
+  text-align: center;
+  font-size: 13px;
+  color: #555;
+}
+
+.invoice-signature {
+  display: flex;
+  justify-content: space-between;
+  margin: 40px 60px 20px;
+}
+
+.sig-line {
+  width: 150px;
+  height: 1px;
+  background: #999;
+  margin-bottom: 8px;
+}
+
+.thank-you {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-top: 16px;
+}
+
+@media print {
+  .invoice-container {
+    box-shadow: none;
+    padding: 20px;
+    width: 100%;
+    max-width: 100%;
+  }
+}

@@ -1,0 +1,21 @@
+.product-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.product-name-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-name-main {
+  font-weight: 600;
+}
+
+.product-name-local {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
