@@ -83,11 +83,21 @@ public class DashboardService {
             topProducts.add(item);
         }
 
-        // Detailed stock lists
-        List<com.retailshop.dto.ProductResponse> lowStockProducts = productRepository.findLowStockProducts().stream()
-                .map(productService::toResponse).toList();
-        List<com.retailshop.dto.ProductResponse> outOfStockProducts = productRepository.findOutOfStockProducts().stream()
-                .map(productService::toResponse).toList();
+        // Stock Alerts Logic
+        List<Product> lowStockEntities = productRepository.findLowStockProducts();
+        List<Product> outOfStockEntities = productRepository.findOutOfStockProducts();
+
+        long lowStockCount = lowStockEntities.size();
+        long outOfStockCount = outOfStockEntities.size();
+
+        // Convert to DTOs for the modals
+        List<com.retailshop.dto.ProductResponse> lowStockProducts = lowStockEntities.stream()
+                .map(productService::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+        
+        List<com.retailshop.dto.ProductResponse> outOfStockProducts = outOfStockEntities.stream()
+                .map(productService::toResponse)
+                .collect(java.util.stream.Collectors.toList());
 
         return DashboardResponse.builder()
                 .totalProducts(totalProducts)
@@ -100,8 +110,8 @@ public class DashboardService {
                 .monthlyRevenue(monthlyRevenue)
                 .monthlyPurchaseCost(monthlyPurchaseCost)
                 .estimatedProfit(estimatedProfit)
-                .lowStockCount(lowStockCount)
-                .outOfStockCount(outOfStockCount)
+                .lowStockCount((int) lowStockCount)
+                .outOfStockCount((int) outOfStockCount)
                 .dailyRevenue(dailyRevenue)
                 .topProducts(topProducts)
                 .lowStockProducts(lowStockProducts)

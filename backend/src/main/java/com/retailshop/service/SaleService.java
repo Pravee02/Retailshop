@@ -112,7 +112,8 @@ public class SaleService {
         AtomicInteger serialNum = new AtomicInteger(1);
 
         for (SaleRequest.SaleItemRequest itemReq : request.getItems()) {
-            Product product = productService.findProductById(itemReq.getProductId());
+            Product product = productRepository.findById(itemReq.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + itemReq.getProductId()));
 
             // Determine price (use override or calculate)
             BigDecimal pricePerUnit = itemReq.getPricePerUnit();
@@ -136,21 +137,18 @@ public class SaleService {
             sale.addItem(saleItem);
             subtotal = subtotal.add(itemTotal);
 
-            // Deduct stock atomically in DB
+            // Deduct stock (matching working Admin Billing flow)
             BigDecimal deductionQty = productService.convertQuantityForDeduction(
                     product, itemReq.getQuantity(), itemReq.getUnit());
-
-            int updated = productRepository.updateStockQuantity(product.getId(), deductionQty);
-            if (updated == 0) {
-                throw new BadRequestException("Could not update stock for product: " + product.getName());
-            }
-
-            // Update the in-memory entity so the log reflects correct stock
+            
             product.setQuantity(product.getQuantity().subtract(deductionQty));
 
             if (product.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
                 throw new BadRequestException("Insufficient stock for product: " + product.getName());
             }
+
+            productRepository.save(product);
+            productRepository.flush(); // Force immediate update to DB
 
             // Log inventory change
             InventoryLog log = InventoryLog.builder()

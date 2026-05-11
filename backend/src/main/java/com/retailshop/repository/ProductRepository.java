@@ -30,7 +30,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findLowStockProducts();
 
     /** Find out-of-stock products */
-    @Query("SELECT p FROM Product p WHERE p.active = true AND p.quantity <= 0")
+    @Query("SELECT p FROM Product p WHERE p.active = true AND p.quantity <= 0.001")
     List<Product> findOutOfStockProducts();
 
     /** Count active products */
