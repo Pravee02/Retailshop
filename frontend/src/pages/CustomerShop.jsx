@@ -28,6 +28,8 @@ export default function CustomerShop() {
   const [qtyInputs, setQtyInputs] = useState({});
   const [showMyOrders, setShowMyOrders] = useState(false);
   const [myOrders, setMyOrders] = useState([]);
+  const [shopMenuOpen, setShopMenuOpen] = useState(false);
+
 
   useEffect(() => {
     if (user && !orderForm.customerName) {
@@ -137,38 +139,113 @@ export default function CustomerShop() {
   return (
     <div className="shop-page">
       <header className="shop-header">
-        <div className="shop-brand"><span className="shop-logo">🛒</span><h1>RetailShop</h1></div>
+        <div className="shop-brand">
+          <Link to="/" className="shop-logo">🛒</Link>
+          <h1>RetailShop</h1>
+        </div>
+
         <div className="shop-header-actions">
-          {!isAuthenticated() && (
-            <>
-              <Link to="/customer/login" className="btn btn-ghost btn-sm" style={{ marginRight: '8px' }}>
-                <FiUser /> Customer Login
+          {/* Desktop Actions */}
+          <div className="desktop-actions">
+            {!isAuthenticated() && (
+              <>
+                <Link to="/customer/login" className="btn btn-ghost btn-sm">
+                  <FiUser /> Customer Login
+                </Link>
+                <Link to="/login" className="btn btn-ghost btn-sm">
+                  <FiUser /> Admin Login
+                </Link>
+              </>
+            )}
+            {isAuthenticated() && user.role === 'CUSTOMER' && (
+              <>
+                <button className="btn btn-ghost btn-sm" onClick={handleShowMyOrders}>
+                  📋 My Orders
+                </button>
+                <button className="btn btn-ghost btn-sm text-danger" onClick={logout}>
+                  Logout
+                </button>
+              </>
+            )}
+            {isAuthenticated() && user.role === 'ADMIN' && (
+              <Link to="/dashboard" className="btn btn-ghost btn-sm">
+                Dashboard
               </Link>
-              <Link to="/login" className="btn btn-ghost btn-sm" style={{ marginRight: '8px' }}>
-                <FiUser /> Admin Login
-              </Link>
-            </>
-          )}
-          {isAuthenticated() && user.role === 'CUSTOMER' && (
-            <>
-              <button className="btn btn-ghost btn-sm" onClick={handleShowMyOrders} style={{ marginRight: '8px' }}>
-                📋 My Orders
-              </button>
-              <button className="btn btn-ghost btn-sm text-danger" onClick={logout} style={{ marginRight: '8px' }}>
-                Logout
-              </button>
-            </>
-          )}
-          {isAuthenticated() && user.role === 'ADMIN' && (
-            <Link to="/dashboard" className="btn btn-ghost btn-sm" style={{ marginRight: '8px' }}>
-              Dashboard
-            </Link>
-          )}
-          <button className="btn btn-ghost btn-sm" onClick={toggleTheme}>{theme === 'dark' ? <FiSun /> : <FiMoon />}</button>
-          <button className="btn btn-ghost btn-sm" onClick={toggleLang}><FiGlobe /> {i18n.language === 'en' ? 'ಕನ್ನಡ' : 'ENG'}</button>
-          <button className="cart-btn" onClick={() => setShowCart(true)}><FiShoppingCart />{cartCount > 0 && <span className="cart-count">{cartCount}</span>}</button>
+            )}
+            <button className="btn btn-ghost btn-sm" onClick={toggleTheme}>
+              {theme === 'dark' ? <FiSun /> : <FiMoon />}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={toggleLang}>
+              <FiGlobe /> {i18n.language === 'en' ? 'ಕನ್ನಡ' : 'ENG'}
+            </button>
+          </div>
+
+          {/* Always Visible Cart */}
+          <button className="cart-btn" onClick={() => setShowCart(true)}>
+            <FiShoppingCart />
+            {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+          </button>
+
+          {/* Mobile Menu Toggle */}
+          <button className="shop-menu-toggle" onClick={() => setShopMenuOpen(true)}>
+            <FiMenu />
+          </button>
         </div>
       </header>
+
+      {/* Shop Mobile Menu */}
+      {shopMenuOpen && (
+        <div className="mobile-nav-overlay" onClick={() => setShopMenuOpen(false)}>
+          <div className="mobile-nav-drawer" onClick={e => e.stopPropagation()}>
+            <div className="mobile-nav-header">
+              <div className="shop-brand">
+                <span className="shop-logo">🛒</span>
+                <h2 style={{ fontSize: '1.2rem', color: 'var(--primary)', fontWeight: 800 }}>RetailShop</h2>
+              </div>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShopMenuOpen(false)}>
+                <FiX />
+              </button>
+            </div>
+            <div className="mobile-nav-body">
+              {!isAuthenticated() ? (
+                <>
+                  <Link to="/customer/login" className="mobile-nav-link" onClick={() => setShopMenuOpen(false)}>
+                    <FiUser /> Customer Login
+                  </Link>
+                  <Link to="/login" className="mobile-nav-link" onClick={() => setShopMenuOpen(false)}>
+                    <FiUser /> Admin Login
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {user.role === 'CUSTOMER' && (
+                    <button className="mobile-nav-link" style={{ textAlign: 'left', background: 'none', border: 'none' }} onClick={() => { setShopMenuOpen(false); handleShowMyOrders(); }}>
+                      📋 My Orders
+                    </button>
+                  )}
+                  {user.role === 'ADMIN' && (
+                    <Link to="/dashboard" className="mobile-nav-link" onClick={() => setShopMenuOpen(false)}>
+                      Dashboard
+                    </Link>
+                  )}
+                  <button className="mobile-nav-link text-danger" style={{ textAlign: 'left', background: 'none', border: 'none' }} onClick={() => { setShopMenuOpen(false); logout(); }}>
+                    Logout
+                  </button>
+                </>
+              )}
+              <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '10px' }}>
+                <button className="btn btn-outline flex-1" onClick={() => { setShopMenuOpen(false); toggleTheme(); }}>
+                  {theme === 'dark' ? <FiSun /> : <FiMoon />} {theme === 'dark' ? 'Light' : 'Dark'}
+                </button>
+                <button className="btn btn-outline flex-1" onClick={() => { setShopMenuOpen(false); toggleLang(); }}>
+                  <FiGlobe /> {i18n.language === 'en' ? 'ಕನ್ನಡ' : 'ENG'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <div className="shop-hero"><h2>{t('shop.title')}</h2><p>{t('shop.subtitle')}</p>
         <div className="shop-search-bar"><FiSearch className="search-icon" />
