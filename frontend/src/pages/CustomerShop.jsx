@@ -44,10 +44,13 @@ export default function CustomerShop() {
     setLoading(true);
     try {
       const res = await productAPI.getAll(page, 20, selectedCat || search);
-      setProducts(res.data.content);
-      setTotalPages(res.data.totalPages);
-    } catch (e) { toast.error('Failed to load products'); }
-    finally { setLoading(false); }
+      setProducts(res.data?.content || []);
+      setTotalPages(res.data?.totalPages || 0);
+    } catch (e) { 
+      console.error('Load products error:', e);
+      toast.error('Failed to load products');
+      setProducts([]);
+    } finally { setLoading(false); }
   };
 
   const handleAddToCart = (p) => {
@@ -78,9 +81,10 @@ export default function CustomerShop() {
   const handleShowMyOrders = async () => {
     try {
       const res = await orderAPI.getMyOrders();
-      setMyOrders(res.data);
+      setMyOrders(res.data || []);
       setShowMyOrders(true);
     } catch (e) {
+      console.error('My orders error:', e);
       toast.error('Failed to load your orders');
     }
   };
@@ -98,7 +102,7 @@ export default function CustomerShop() {
 
   const handlePrintOrder = (order) => {
     const printWindow = window.open('', '_blank');
-    const itemsHtml = order.items.map(item => 
+    const itemsHtml = (order.items || []).map(item => 
       `<tr><td>${item.productName}</td><td>${item.quantity} ${item.unit}</td></tr>`
     ).join('');
     
@@ -255,7 +259,7 @@ export default function CustomerShop() {
 
       <div className="shop-categories">
         <button className={`cat-chip ${!selectedCat ? 'active' : ''}`} onClick={() => { setSelectedCat(''); setPage(0); }}>All</button>
-        {categories.map(c => <button key={c} className={`cat-chip ${selectedCat === c ? 'active' : ''}`} onClick={() => { setSelectedCat(c); setSearch(''); setPage(0); }}>{c}</button>)}
+        {(categories || []).map(c => <button key={c} className={`cat-chip ${selectedCat === c ? 'active' : ''}`} onClick={() => { setSelectedCat(c); setSearch(''); setPage(0); }}>{c}</button>)}
       </div>
 
       <div className="shop-products">
@@ -305,9 +309,9 @@ export default function CustomerShop() {
         <div className="cart-drawer" onClick={e => e.stopPropagation()}>
           <div className="cart-header"><h2><FiShoppingCart /> Cart ({cartCount})</h2><button className="btn btn-ghost btn-icon" onClick={() => setShowCart(false)}><FiX /></button></div>
           <div className="cart-items">
-            {cartItems.length === 0 ? <div className="empty-state" style={{padding:40}}><p>Cart is empty</p></div> :
+            {!cartItems || cartItems.length === 0 ? <div className="empty-state" style={{padding:40}}><p>Cart is empty</p></div> :
               cartItems.map(item => (
-                <div key={`${item.product.id}-${item.unit}`} className="cart-item">
+                <div key={`${item.product?.id}-${item.unit}`} className="cart-item">
                   <div className="cart-item-info"><h4>{item.product.name}</h4><p>₹{item.product.pricePerUnit}/{item.unit}</p></div>
                   <div className="cart-item-qty">
                     <button onClick={() => updateQuantity(item.product.id, item.unit, Math.max(0.01, parseFloat((item.quantity - 0.25).toFixed(3))))}><FiMinus /></button>
@@ -368,7 +372,7 @@ export default function CustomerShop() {
                   </div>
                   {order.items && order.items.length > 0 && (
                     <ul style={{ fontSize: '0.85rem', paddingLeft: '20px', color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
-                      {order.items.map(item => (
+                      {(order.items || []).map(item => (
                         <li key={item.id}>{item.productName} ({item.quantity} {item.unit})</li>
                       ))}
                     </ul>

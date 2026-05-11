@@ -30,9 +30,10 @@ export default function CustomerAuth() {
     try {
       if (view === 'LOGIN') {
         const response = await authAPI.login({ username: formData.name, password: formData.password });
-        const { token, username, fullName, role } = response.data;
+        const { token, username, fullName, role } = response.data || {};
+        if (!token) throw new Error('Invalid response from server');
         login({ username, fullName, role }, token);
-        toast.success(`Welcome back, ${fullName}!`);
+        toast.success(`Welcome back, ${fullName || username}!`);
       } else {
         const payload = {
           username: formData.name,
@@ -42,13 +43,15 @@ export default function CustomerAuth() {
           role: 'CUSTOMER'
         };
         const response = await authAPI.register(payload);
-        const { token, username, fullName, role } = response.data;
+        const { token, username, fullName, role } = response.data || {};
+        if (!token) throw new Error('Registration succeeded but login failed');
         login({ username, fullName, role }, token);
-        toast.success(`Registered successfully! Welcome, ${fullName}!`);
+        toast.success(`Registered successfully! Welcome, ${fullName || username}!`);
       }
       navigate('/shop');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Authentication failed');
+      console.error('Auth error:', error);
+      toast.error(error.response?.data?.message || error.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }

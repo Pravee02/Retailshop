@@ -57,7 +57,7 @@ const OrderInvoice = ({ order, onBack }) => {
             </tr>
           </thead>
           <tbody>
-            {order.items.map((item) => (
+            {(order.items || []).map((item) => (
               <tr key={item.id}>
                 <td>{item.product?.productCode || '—'}</td>
                 <td>{item.productName}</td>
