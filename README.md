@@ -55,8 +55,8 @@ RetailShop/
 
 ### 1. Start Backend
 ```bash
-cd backend
-mvn spring-boot:run
+$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot'
+& 'C:\Users\ADMIN\.m2\wrapper\dists\apache-maven-3.9.11-bin\6mqf5t809d9geo83kj4ttckcbc\apache-maven-3.9.11\bin\mvn.cmd' spring-boot:run
 ```
 Backend runs at: http://localhost:8080
 H2 Console: http://localhost:8080/h2-console
