@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import { FiUser, FiLock, FiLogIn, FiEye, FiEyeOff, FiPhone, FiArrowLeft, FiCheckCircle, FiBox, FiTrendingUp, FiShoppingBag, FiTruck } from 'react-icons/fi';
 import './Login.css';
 
+import './Landing.css';
+
 export default function CustomerAuth() {
   const { t } = useTranslation();
   const { login } = useAuth();
@@ -53,14 +55,14 @@ export default function CustomerAuth() {
 
   if (view === 'LANDING') {
     return (
-      <div className="landing-page" style={{ background: 'var(--bg-main)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="landing-page">
         {/* HEADER */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 5%', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <header className="landing-header">
+          <div className="landing-brand">
             <span style={{ fontSize: '2rem' }}>🛒</span>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--primary-color)', fontWeight: 800 }}>RetailShop</h1>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--primary)', fontWeight: 800 }}>RetailShop</h1>
           </div>
-          <nav style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <nav className="landing-nav">
             <a href="#" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Home</a>
             <a href="#features" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Features</a>
             <a href="#about" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>About</a>
@@ -71,14 +73,14 @@ export default function CustomerAuth() {
 
         {/* HERO SECTION */}
         <main style={{ flex: 1 }}>
-          <section style={{ padding: '6rem 5%', textAlign: 'center', background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-main) 100%)' }}>
-            <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 800, lineHeight: 1.2 }}>
-              Modern Inventory & <br/><span style={{ color: 'var(--primary-color)' }}>Sales Management</span>
+          <section className="landing-hero">
+            <h1>
+              Modern Inventory & <br/><span>Sales Management</span>
             </h1>
-            <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto 2rem auto', lineHeight: 1.6 }}>
+            <p>
               The complete solution for small businesses and shops. Manage products, track orders, generate instant bills, and provide a seamless customer portal.
             </p>
-            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div className="landing-hero-actions">
               <button className="btn btn-primary btn-lg" onClick={() => setView('LOGIN')}>Customer Login</button>
               <button className="btn btn-outline btn-lg" onClick={() => setView('REGISTER')}>Create Account</button>
               <button className="btn btn-ghost btn-lg" onClick={() => navigate('/shop')}>Browse Products →</button>
@@ -86,30 +88,30 @@ export default function CustomerAuth() {
           </section>
 
           {/* FEATURES SECTION */}
-          <section id="features" style={{ padding: '5rem 5%', background: 'var(--bg-card)' }}>
-            <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '3rem', color: 'var(--text-primary)' }}>Powerful Features</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '30px', maxWidth: '1200px', margin: '0 auto' }}>
+          <section id="features" className="features-section">
+            <h2>Powerful Features</h2>
+            <div className="features-grid">
               
-              <div style={{ padding: '2rem', background: 'var(--bg-main)', borderRadius: 'var(--radius-lg)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <FiBox style={{ fontSize: '3rem', color: 'var(--primary-color)', marginBottom: '1rem' }} />
+              <div className="feature-card">
+                <FiBox style={{ fontSize: '3rem', color: 'var(--primary)', marginBottom: '1rem' }} />
                 <h3>Inventory Management</h3>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Track stock levels in real-time and manage your entire product catalog effortlessly.</p>
               </div>
 
-              <div style={{ padding: '2rem', background: 'var(--bg-main)', borderRadius: 'var(--radius-lg)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <FiCheckCircle style={{ fontSize: '3rem', color: 'var(--success-color)', marginBottom: '1rem' }} />
+              <div className="feature-card">
+                <FiCheckCircle style={{ fontSize: '3rem', color: 'var(--success)', marginBottom: '1rem' }} />
                 <h3>Fast Billing</h3>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Generate invoices and process sales rapidly with our optimized billing interface.</p>
               </div>
 
-              <div style={{ padding: '2rem', background: 'var(--bg-main)', borderRadius: 'var(--radius-lg)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <FiShoppingBag style={{ fontSize: '3rem', color: 'var(--warning-color)', marginBottom: '1rem' }} />
+              <div className="feature-card">
+                <FiShoppingBag style={{ fontSize: '3rem', color: 'var(--warning)', marginBottom: '1rem' }} />
                 <h3>Customer Portal</h3>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Allow customers to browse products, place orders, and track history independently.</p>
               </div>
 
-              <div style={{ padding: '2rem', background: 'var(--bg-main)', borderRadius: 'var(--radius-lg)', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <FiTrendingUp style={{ fontSize: '3rem', color: 'var(--info-color)', marginBottom: '1rem' }} />
+              <div className="feature-card">
+                <FiTrendingUp style={{ fontSize: '3rem', color: 'var(--info)', marginBottom: '1rem' }} />
                 <h3>Analytics</h3>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Gain insights into your business performance with dynamic dashboard metrics.</p>
               </div>
@@ -119,8 +121,8 @@ export default function CustomerAuth() {
         </main>
 
         {/* FOOTER */}
-        <footer style={{ background: 'var(--bg-card)', padding: '3rem 5%', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '30px', marginBottom: '2rem' }}>
+        <footer className="landing-footer">
+          <div className="footer-links">
             <a href="#" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Privacy Policy</a>
             <a href="#" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Terms & Conditions</a>
             <a href="#" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Contact Info</a>
@@ -130,6 +132,7 @@ export default function CustomerAuth() {
       </div>
     );
   }
+
 
   // AUTH VIEW (LOGIN / REGISTER)
   return (
