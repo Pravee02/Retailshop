@@ -177,58 +177,60 @@ export default function Products() {
         </div>
       ) : (
         <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>{t('products.name')}</th>
-                <th>{t('products.category')}</th>
-                <th>{t('products.quantity')}</th>
-                <th>{t('products.unit')}</th>
-                <th>{t('products.price')}</th>
-                <th>{t('common.status')}</th>
-                <th>{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id}>
-                  <td><span className="text-muted">{product.productCode || `#${product.id}`}</span></td>
-                  <td>
-                    <div className="product-name-cell">
-                      <span className="product-name-main">{product.name}</span>
-                      {product.localName && (
-                        <span className="product-name-local">{product.localName}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td><span className="badge badge-primary">{product.category || '—'}</span></td>
-                  <td><strong>{product.quantity}</strong></td>
-                  <td>{product.unitType}</td>
-                  <td><strong>₹{product.pricePerUnit}</strong></td>
-                  <td>{getStockBadge(product)}</td>
-                  <td>
-                    <div className="flex gap-sm">
-                      <button 
-                        className="btn btn-ghost btn-sm" 
-                        onClick={() => openEditModal(product)}
-                        title={t('common.edit')}
-                      >
-                        <FiEdit2 />
-                      </button>
-                      <button 
-                        className="btn btn-ghost btn-sm text-danger" 
-                        onClick={() => handleDelete(product)}
-                        title={t('common.delete')}
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </div>
-                  </td>
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>{t('products.name')}</th>
+                  <th>{t('products.category')}</th>
+                  <th>{t('products.quantity')}</th>
+                  <th>{t('products.unit')}</th>
+                  <th>{t('products.price')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <td><span className="text-muted">{product.productCode || `#${product.id}`}</span></td>
+                    <td>
+                      <div className="product-name-cell">
+                        <span className="product-name-main">{product.name}</span>
+                        {product.localName && (
+                          <span className="product-name-local">{product.localName}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td><span className="badge badge-primary">{product.category || '—'}</span></td>
+                    <td><strong>{product.quantity}</strong></td>
+                    <td>{product.unitType}</td>
+                    <td><strong>₹{product.pricePerUnit}</strong></td>
+                    <td>{getStockBadge(product)}</td>
+                    <td>
+                      <div className="flex gap-sm">
+                        <button 
+                          className="btn btn-ghost btn-sm" 
+                          onClick={() => openEditModal(product)}
+                          title={t('common.edit')}
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button 
+                          className="btn btn-ghost btn-sm text-danger" 
+                          onClick={() => handleDelete(product)}
+                          title={t('common.delete')}
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

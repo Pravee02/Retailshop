@@ -150,37 +150,39 @@ export default function Inventory() {
             <div className="spinner"></div>
           </div>
         )}
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Stock</th>
-              <th>Unit</th>
-              <th>Price/Unit</th>
-              <th>Stock Value</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map(product => (
-              <tr key={product.id}>
-                <td>{product.productCode || `#${product.id}`}</td>
-                <td>
-                  <strong>{product.name}</strong>
-                  {product.localName && <div className="text-muted" style={{ fontSize: 'var(--font-xs)' }}>{product.localName}</div>}
-                </td>
-                <td><span className="badge badge-primary">{product.category || '—'}</span></td>
-                <td><strong>{product.quantity}</strong></td>
-                <td>{product.unitType}</td>
-                <td>₹{product.pricePerUnit}</td>
-                <td>₹{(product.quantity * product.pricePerUnit).toFixed(2)}</td>
-                <td>{getStockBadge(product)}</td>
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Stock</th>
+                <th>Unit</th>
+                <th>Price/Unit</th>
+                <th>Stock Value</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map(product => (
+                <tr key={product.id}>
+                  <td>{product.productCode || `#${product.id}`}</td>
+                  <td>
+                    <strong>{product.name}</strong>
+                    {product.localName && <div className="text-muted" style={{ fontSize: 'var(--font-xs)' }}>{product.localName}</div>}
+                  </td>
+                  <td><span className="badge badge-primary">{product.category || '—'}</span></td>
+                  <td><strong>{product.quantity}</strong></td>
+                  <td>{product.unitType}</td>
+                  <td>₹{product.pricePerUnit}</td>
+                  <td>₹{(product.quantity * product.pricePerUnit).toFixed(2)}</td>
+                  <td>{getStockBadge(product)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {totalPages > 1 && (

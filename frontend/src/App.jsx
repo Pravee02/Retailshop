@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { FiMenu } from 'react-icons/fi';
 import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
@@ -31,12 +33,28 @@ function ProtectedRoute({ children, adminOnly = false }) {
 export default function App() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="app-layout">
-      {user && isAdmin && <Sidebar />}
+      {user && isAdmin && (
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      )}
+      
       <main className={`app-content ${!user || !isAdmin ? 'no-sidebar' : ''}`} 
             style={!user || !isAdmin ? { marginLeft: 0 } : {}}>
+        
+        {user && isAdmin && (
+          <header className="mobile-header">
+            <button className="menu-toggle" onClick={() => setSidebarOpen(true)}>
+              <FiMenu />
+            </button>
+            <div className="mobile-logo-text">
+              <h2>RetailShop</h2>
+            </div>
+            <div style={{ width: '40px' }} /> {/* Spacer */}
+          </header>
+        )}
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/auth" element={<CustomerAuth />} />

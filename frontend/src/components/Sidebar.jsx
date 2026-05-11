@@ -5,11 +5,11 @@ import { useTheme } from '../context/ThemeContext';
 import { 
   FiGrid, FiPackage, FiShoppingCart, FiBarChart2, 
   FiClipboard, FiUsers, FiLogOut, FiSun, FiMoon,
-  FiGlobe, FiShoppingBag
+  FiGlobe, FiShoppingBag, FiX
 } from 'react-icons/fi';
 import './Sidebar.css';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -36,8 +36,15 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="sidebar">
-      {/* Logo */}
+    <>
+      {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
+      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+        {/* Mobile Close Button */}
+        <button className="mobile-close" onClick={onClose}>
+          <FiX />
+        </button>
+        
+        {/* Logo */}
       <div className="sidebar-logo">
         <div className="logo-icon">🛒</div>
         <div className="logo-text">
@@ -53,6 +60,9 @@ export default function Sidebar() {
             key={item.path}
             to={item.path}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={() => {
+              if (window.innerWidth <= 768) onClose();
+            }}
           >
             <span className="nav-icon">{item.icon}</span>
             <span className="nav-label">{item.label}</span>
@@ -86,6 +96,7 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -386,90 +386,92 @@ export default function Billing() {
             </div>
             
             <div className="table-container" style={{ border: 'none', borderRadius: 0, minHeight: '400px' }}>
-              {billItems.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '50px' }}>#</th>
-                      <th style={{ width: '80px' }}>ID</th>
-                      <th>Product</th>
-                      <th style={{ width: '100px' }}>Qty</th>
-                      <th style={{ width: '110px' }}>Unit</th>
-                      <th style={{ width: '110px' }}>Price/Unit</th>
-                      <th style={{ width: '120px' }}>Total</th>
-                      <th style={{ width: '50px' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {billItems.map((item, index) => (
-                      <tr key={index}>
-                        <td>{index + 1}</td>
-                        <td><span className="text-muted" style={{ fontSize: '11px' }}>{item.productCode || '—'}</span></td>
-                        <td>
-                          <div className="product-name-cell">
-                            <span className="product-name-main" style={{ fontWeight: 600 }}>{item.productName}</span>
-                            <div className="quick-units">
-                              {(UNIT_OPTIONS[item.baseUnit] || []).map((opt, j) => (
-                                <button
-                                  key={j}
-                                  className="quick-unit-btn"
-                                  onClick={() => quickAddQuantity(index, opt)}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            className="form-input"
-                            style={{ width: 80, padding: '8px', height: '36px', textAlign: 'center' }}
-                            value={item.quantity}
-                            onChange={(e) => updateItemQuantity(index, e.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            className="form-select"
-                            style={{ width: 90, padding: '8px', height: '36px', fontSize: '12px' }}
-                            value={item.unit}
-                            onChange={(e) => updateItemUnit(index, e.target.value)}
-                          >
-                            {(UNIT_OPTIONS[item.baseUnit] || [{ label: item.baseUnit, unit: item.baseUnit }]).map((opt, j) => (
-                              <option key={j} value={opt.unit}>{opt.unit}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            className="form-input"
-                            style={{ width: 90, padding: '8px', height: '36px', textAlign: 'center' }}
-                            value={item.pricePerUnit}
-                            onChange={(e) => updateItemPrice(index, e.target.value)}
-                          />
-                        </td>
-                        <td><strong>₹{item.total.toFixed(2)}</strong></td>
-                        <td>
-                          <button className="btn btn-ghost btn-sm text-danger" onClick={() => removeItem(index)}>
-                            <FiTrash2 />
-                          </button>
-                        </td>
+              <div className="table-wrapper">
+                {billItems.length > 0 ? (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '50px' }}>#</th>
+                        <th style={{ width: '80px' }}>ID</th>
+                        <th>Product</th>
+                        <th style={{ width: '100px' }}>Qty</th>
+                        <th style={{ width: '110px' }}>Unit</th>
+                        <th style={{ width: '110px' }}>Price/Unit</th>
+                        <th style={{ width: '120px' }}>Total</th>
+                        <th style={{ width: '50px' }}></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="empty-state" style={{ padding: 'var(--space-2xl) 0' }}>
-                  <div className="empty-icon"><FiShoppingCart /></div>
-                  <h3>No items added yet</h3>
-                  <p>Search and add products to create a bill</p>
-                </div>
-              )}
+                    </thead>
+                    <tbody>
+                      {billItems.map((item, index) => (
+                        <tr key={index}>
+                          <td>{index + 1}</td>
+                          <td><span className="text-muted" style={{ fontSize: '11px' }}>{item.productCode || '—'}</span></td>
+                          <td>
+                            <div className="product-name-cell">
+                              <span className="product-name-main" style={{ fontWeight: 600 }}>{item.productName}</span>
+                              <div className="quick-units">
+                                {(UNIT_OPTIONS[item.baseUnit] || []).map((opt, j) => (
+                                  <button
+                                    key={j}
+                                    className="quick-unit-btn"
+                                    onClick={() => quickAddQuantity(index, opt)}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="form-input"
+                              style={{ width: 80, padding: '8px', height: '36px', textAlign: 'center' }}
+                              value={item.quantity}
+                              onChange={(e) => updateItemQuantity(index, e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <select
+                              className="form-select"
+                              style={{ width: 90, padding: '8px', height: '36px', fontSize: '12px' }}
+                              value={item.unit}
+                              onChange={(e) => updateItemUnit(index, e.target.value)}
+                            >
+                              {(UNIT_OPTIONS[item.baseUnit] || [{ label: item.baseUnit, unit: item.baseUnit }]).map((opt, j) => (
+                                <option key={j} value={opt.unit}>{opt.unit}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="form-input"
+                              style={{ width: 90, padding: '8px', height: '36px', textAlign: 'center' }}
+                              value={item.pricePerUnit}
+                              onChange={(e) => updateItemPrice(index, e.target.value)}
+                            />
+                          </td>
+                          <td><strong>₹{item.total.toFixed(2)}</strong></td>
+                          <td>
+                            <button className="btn btn-ghost btn-sm text-danger" onClick={() => removeItem(index)}>
+                              <FiTrash2 />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="empty-state" style={{ padding: 'var(--space-2xl) 0' }}>
+                    <div className="empty-icon"><FiShoppingCart /></div>
+                    <h3>No items added yet</h3>
+                    <p>Search and add products to create a bill</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
