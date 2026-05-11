@@ -38,15 +38,30 @@ export const authAPI = {
 };
 
 // ---- Product API ----
+let categoriesCache = null;
 export const productAPI = {
   getAll: (page = 0, size = 20, search = '') =>
     api.get('products', { params: { page, size, search } }),
   getById: (id) => api.get(`products/${id}`),
-  create: (data) => api.post('products', data),
-  update: (id, data) => api.put(`products/${id}`, data),
-  delete: (id) => api.delete(`products/${id}`),
+  create: (data) => {
+    categoriesCache = null; // Clear cache on change
+    return api.post('products', data);
+  },
+  update: (id, data) => {
+    categoriesCache = null; // Clear cache on change
+    return api.put(`products/${id}`, data);
+  },
+  delete: (id) => {
+    categoriesCache = null; // Clear cache on change
+    return api.delete(`products/${id}`);
+  },
   getLowStock: () => api.get('products/low-stock'),
-  getCategories: () => api.get('products/categories'),
+  getCategories: async () => {
+    if (categoriesCache) return categoriesCache;
+    const res = await api.get('products/categories');
+    categoriesCache = res;
+    return res;
+  },
   calculatePrice: (id, quantity, unit) =>
     api.get(`products/${id}/calculate-price`, { params: { quantity, unit } }),
 };

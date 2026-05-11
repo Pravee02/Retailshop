@@ -144,7 +144,7 @@ export default function Inventory() {
       </div>
 
       {/* Inventory Table */}
-      <div className="table-container" style={{ position: 'relative', minHeight: '200px' }}>
+      <div className="table-container table-mobile-cards" style={{ position: 'relative', minHeight: '200px' }}>
         {loading && (
           <div className="loading-overlay" style={{ position: 'absolute', background: 'rgba(0,0,0,0.1)' }}>
             <div className="spinner"></div>
@@ -167,17 +167,17 @@ export default function Inventory() {
             <tbody>
               {products.map(product => (
                 <tr key={product.id}>
-                  <td>{product.productCode || `#${product.id}`}</td>
-                  <td>
+                  <td data-label="ID">{product.productCode || `#${product.id}`}</td>
+                  <td data-label="Product">
                     <strong>{product.name}</strong>
                     {product.localName && <div className="text-muted" style={{ fontSize: 'var(--font-xs)' }}>{product.localName}</div>}
                   </td>
-                  <td><span className="badge badge-primary">{product.category || '—'}</span></td>
-                  <td><strong>{product.quantity}</strong></td>
-                  <td>{product.unitType}</td>
-                  <td>₹{product.pricePerUnit}</td>
-                  <td>₹{(product.quantity * product.pricePerUnit).toFixed(2)}</td>
-                  <td>{getStockBadge(product)}</td>
+                  <td data-label="Category"><span className="badge badge-primary">{product.category || '—'}</span></td>
+                  <td data-label="Stock"><strong>{product.quantity}</strong></td>
+                  <td data-label="Unit">{product.unitType}</td>
+                  <td data-label="Price/Unit">₹{product.pricePerUnit}</td>
+                  <td data-label="Stock Value">₹{(product.quantity * product.pricePerUnit).toFixed(2)}</td>
+                  <td data-label="Status">{getStockBadge(product)}</td>
                 </tr>
               ))}
             </tbody>

@@ -92,18 +92,18 @@ export default function Orders() {
                 {orders.map(order => (
                   <React.Fragment key={order.id}>
                     <tr className="cursor-pointer hover-bg" onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}>
-                      <td><strong>{order.orderNumber}</strong></td>
-                      <td>{order.customerName}</td>
-                      <td>{order.customerPhone || '—'}</td>
-                      <td>{order.items?.length || 0} items</td>
-                      <td><strong>₹{Number(order.totalAmount).toFixed(2)}</strong></td>
-                      <td>
+                      <td data-label="Order #"><strong>{order.orderNumber}</strong></td>
+                      <td data-label="Customer">{order.customerName}</td>
+                      <td data-label="Phone">{order.customerPhone || '—'}</td>
+                      <td data-label="Items">{order.items?.length || 0} items</td>
+                      <td data-label="Total"><strong>₹{Number(order.totalAmount).toFixed(2)}</strong></td>
+                      <td data-label="Status">
                         <span className={`badge ${STATUS_COLORS[order.status] || 'badge-primary'}`}>
                           {order.status}
                         </span>
                       </td>
-                      <td>{new Date(order.orderDate).toLocaleDateString('en-IN')}</td>
-                      <td onClick={e => e.stopPropagation()}>
+                      <td data-label="Date">{new Date(order.orderDate).toLocaleDateString('en-IN')}</td>
+                      <td data-label="Actions" onClick={e => e.stopPropagation()}>
                         <div className="flex gap-sm">
                           <button className="btn btn-sm btn-outline" onClick={() => setPrintOrder(order)} title="Print Invoice">
                             <FiPrinter />

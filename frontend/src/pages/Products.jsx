@@ -176,7 +176,7 @@ export default function Products() {
           <p>Add your first product to get started</p>
         </div>
       ) : (
-        <div className="table-container">
+        <div className="table-container table-mobile-cards">
           <div className="table-wrapper">
             <table className="data-table">
               <thead>
@@ -194,8 +194,8 @@ export default function Products() {
               <tbody>
                 {products.map((product) => (
                   <tr key={product.id}>
-                    <td><span className="text-muted">{product.productCode || `#${product.id}`}</span></td>
-                    <td>
+                    <td data-label="ID"><span className="text-muted">{product.productCode || `#${product.id}`}</span></td>
+                    <td data-label={t('products.name')}>
                       <div className="product-name-cell">
                         <span className="product-name-main">{product.name}</span>
                         {product.localName && (
@@ -203,13 +203,13 @@ export default function Products() {
                         )}
                       </div>
                     </td>
-                    <td><span className="badge badge-primary">{product.category || '—'}</span></td>
-                    <td><strong>{product.quantity}</strong></td>
-                    <td>{product.unitType}</td>
-                    <td><strong>₹{product.pricePerUnit}</strong></td>
-                    <td>{getStockBadge(product)}</td>
-                    <td>
-                      <div className="flex gap-sm">
+                    <td data-label={t('products.category')}><span className="badge badge-primary">{product.category || '—'}</span></td>
+                    <td data-label={t('products.quantity')}><strong>{product.quantity}</strong></td>
+                    <td data-label={t('products.unit')}>{product.unitType}</td>
+                    <td data-label={t('products.price')}><strong>₹{product.pricePerUnit}</strong></td>
+                    <td data-label={t('common.status')}>{getStockBadge(product)}</td>
+                    <td data-label={t('common.actions')}>
+                      <div className="flex gap-sm" style={{ justifyContent: 'flex-end' }}>
                         <button 
                           className="btn btn-ghost btn-sm" 
                           onClick={() => openEditModal(product)}

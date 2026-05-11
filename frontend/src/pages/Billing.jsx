@@ -422,7 +422,7 @@ export default function Billing() {
                               </div>
                             </div>
                           </td>
-                          <td data-label="Quantity">
+                          <td data-label="Qty">
                             <input
                               type="text"
                               inputMode="decimal"
@@ -442,7 +442,7 @@ export default function Billing() {
                               ))}
                             </select>
                           </td>
-                          <td data-label="Price">
+                          <td data-label="Price/Unit">
                             <input
                               type="text"
                               inputMode="decimal"
