@@ -10,8 +10,14 @@ export function AuthProvider({ children }) {
     // Restore user from localStorage
     const savedUser = localStorage.getItem('user');
     const savedToken = localStorage.getItem('token');
-    if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
+    try {
+      if (savedUser && savedToken) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (e) {
+      console.error('Auth restoration error:', e);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
     setLoading(false);
   }, []);

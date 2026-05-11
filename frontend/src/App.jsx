@@ -80,10 +80,10 @@ export default function App() {
           
           {/* Default redirect */}
           <Route path="/" element={
-            <Navigate to={user ? (isAdmin ? "/dashboard" : "/shop") : "/auth"} replace />
+            <Navigate to={user ? (user.role === 'ADMIN' ? "/dashboard" : "/shop") : "/auth"} replace />
           } />
           <Route path="*" element={
-            <Navigate to={user ? (isAdmin ? "/dashboard" : "/shop") : "/auth"} replace />
+            <Navigate to={user ? (user.role === 'ADMIN' ? "/dashboard" : "/shop") : "/auth"} replace />
           } />
         </Routes>
       </main>

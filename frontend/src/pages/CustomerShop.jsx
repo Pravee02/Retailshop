@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
-import { FiSearch, FiShoppingCart, FiPlus, FiMinus, FiTrash2, FiSend, FiSun, FiMoon, FiGlobe, FiX, FiUser, FiPhone, FiMapPin } from 'react-icons/fi';
+import { FiSearch, FiShoppingCart, FiPlus, FiMinus, FiTrash2, FiSend, FiSun, FiMoon, FiGlobe, FiX, FiUser, FiPhone, FiMapPin, FiMenu } from 'react-icons/fi';
 import './CustomerShop.css';
 
 export default function CustomerShop() {
@@ -60,7 +60,7 @@ export default function CustomerShop() {
     setQtyInputs(prev => ({ ...prev, [p.id]: '' }));
     toast.success(`${p.name} — ${qty} ${p.unitType} added!`);
   };
-  const cartTotal = cartItems.reduce((s, i) => s + i.product.pricePerUnit * i.quantity, 0);
+  const cartTotal = (cartItems || []).reduce((s, i) => s + (i.product?.pricePerUnit || 0) * i.quantity, 0);
 
   const handlePlaceOrder = async () => {
     if (!orderForm.customerName) { toast.error('Please enter your name'); return; }
@@ -69,7 +69,7 @@ export default function CustomerShop() {
       await orderAPI.create({
         customerName: orderForm.customerName, customerPhone: orderForm.customerPhone,
         customerAddress: orderForm.customerAddress,
-        items: cartItems.map(i => ({ productId: i.product.id, quantity: i.quantity, unit: i.unit || i.product.unitType })),
+        items: (cartItems || []).map(i => ({ productId: i.product?.id, quantity: i.quantity, unit: i.unit || i.product?.unitType })),
       });
       toast.success(t('shop.orderPlaced'));
       clearCart(); setShowCart(false); setShowOrderForm(false);
@@ -312,9 +312,9 @@ export default function CustomerShop() {
             {!cartItems || cartItems.length === 0 ? <div className="empty-state" style={{padding:40}}><p>Cart is empty</p></div> :
               cartItems.map(item => (
                 <div key={`${item.product?.id}-${item.unit}`} className="cart-item">
-                  <div className="cart-item-info"><h4>{item.product.name}</h4><p>₹{item.product.pricePerUnit}/{item.unit}</p></div>
+                  <div className="cart-item-info"><h4>{item.product?.name || 'Unknown Product'}</h4><p>₹{item.product?.pricePerUnit || 0}/{item.unit}</p></div>
                   <div className="cart-item-qty">
-                    <button onClick={() => updateQuantity(item.product.id, item.unit, Math.max(0.01, parseFloat((item.quantity - 0.25).toFixed(3))))}><FiMinus /></button>
+                    <button onClick={() => item.product && updateQuantity(item.product.id, item.unit, Math.max(0.01, parseFloat((item.quantity - 0.25).toFixed(3))))}><FiMinus /></button>
                     <input
                       type="number"
                       step="0.01"
@@ -324,13 +324,13 @@ export default function CustomerShop() {
                       value={item.quantity}
                       onChange={e => {
                         const val = parseFloat(e.target.value);
-                        if (!isNaN(val) && val > 0) updateQuantity(item.product.id, item.unit, parseFloat(val.toFixed(3)));
+                        if (!isNaN(val) && val > 0 && item.product) updateQuantity(item.product.id, item.unit, parseFloat(val.toFixed(3)));
                       }}
                     />
-                    <button onClick={() => updateQuantity(item.product.id, item.unit, parseFloat((item.quantity + 0.25).toFixed(3)))}><FiPlus /></button>
+                    <button onClick={() => item.product && updateQuantity(item.product.id, item.unit, parseFloat((item.quantity + 0.25).toFixed(3)))}><FiPlus /></button>
                   </div>
-                  <div className="cart-item-total">₹{(item.product.pricePerUnit * item.quantity).toFixed(2)}</div>
-                  <button className="btn btn-ghost btn-sm text-danger" onClick={() => removeFromCart(item.product.id, item.unit)}><FiTrash2 /></button>
+                  <div className="cart-item-total">₹{((item.product?.pricePerUnit || 0) * item.quantity).toFixed(2)}</div>
+                  <button className="btn btn-ghost btn-sm text-danger" onClick={() => item.product && removeFromCart(item.product.id, item.unit)}><FiTrash2 /></button>
                 </div>
               ))
             }
