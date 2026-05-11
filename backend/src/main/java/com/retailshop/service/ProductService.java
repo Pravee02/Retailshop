@@ -200,7 +200,7 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
     }
 
-    private ProductResponse toResponse(Product p) {
+    ProductResponse toResponse(Product p) {
         boolean isLowStock = p.getMinStockLevel() != null && p.getQuantity().compareTo(p.getMinStockLevel()) <= 0;
         boolean isOutOfStock = p.getQuantity().compareTo(BigDecimal.ZERO) <= 0;
 

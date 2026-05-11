@@ -40,6 +40,44 @@ public class SaleService {
     /** Create a new sale and generate bill */
     @Transactional
     public SaleResponse createSale(SaleRequest request) {
+        Sale sale = processSaleInternal(request);
+        return toResponse(sale);
+    }
+
+    /** Create a sale from an existing customer order */
+    @Transactional
+    public void createSaleFromOrder(CustomerOrder order) {
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            throw new BadRequestException("Cannot process order without items: " + order.getOrderNumber());
+        }
+
+        SaleRequest request = new SaleRequest();
+        request.setCustomerName(order.getCustomerName());
+        request.setCustomerPhone(order.getCustomerPhone());
+        request.setNotes("Portal Order: " + order.getOrderNumber());
+        request.setPaymentMethod("CASH");
+        request.setTaxPercent(BigDecimal.ZERO);
+        request.setDiscount(BigDecimal.ZERO);
+
+        List<SaleRequest.SaleItemRequest> itemRequests = order.getItems().stream()
+                .map(item -> {
+                    SaleRequest.SaleItemRequest ir = new SaleRequest.SaleItemRequest();
+                    ir.setProductId(item.getProduct().getId());
+                    ir.setQuantity(item.getQuantity());
+                    ir.setUnit(item.getUnit());
+                    ir.setPricePerUnit(item.getPricePerUnit());
+                    return ir;
+                }).toList();
+
+        request.setItems(itemRequests);
+        processSaleInternal(request);
+    }
+
+    /** 
+     * Core sale processing logic shared by direct sales and customer orders.
+     * Handles bill generation, stock deduction, and inventory logging.
+     */
+    private Sale processSaleInternal(SaleRequest request) {
         // Generate bill number: BILL-YYYYMMDD-XXXX
         String billNumber = generateBillNumber();
 
@@ -98,16 +136,21 @@ public class SaleService {
             sale.addItem(saleItem);
             subtotal = subtotal.add(itemTotal);
 
-            // Deduct stock
+            // Deduct stock atomically in DB
             BigDecimal deductionQty = productService.convertQuantityForDeduction(
                     product, itemReq.getQuantity(), itemReq.getUnit());
+
+            int updated = productRepository.updateStockQuantity(product.getId(), deductionQty);
+            if (updated == 0) {
+                throw new BadRequestException("Could not update stock for product: " + product.getName());
+            }
+
+            // Update the in-memory entity so the log reflects correct stock
             product.setQuantity(product.getQuantity().subtract(deductionQty));
 
             if (product.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
                 throw new BadRequestException("Insufficient stock for product: " + product.getName());
             }
-
-            productRepository.save(product);
 
             // Log inventory change
             InventoryLog log = InventoryLog.builder()
@@ -135,8 +178,7 @@ public class SaleService {
         BigDecimal grandTotal = subtotal.add(taxAmount).subtract(discount);
         sale.setGrandTotal(grandTotal);
 
-        sale = saleRepository.save(sale);
-        return toResponse(sale);
+        return saleRepository.save(sale);
     }
 
     /** Get sale by ID */

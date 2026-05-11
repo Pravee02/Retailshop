@@ -50,6 +50,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /** Find by category */
     Page<Product> findByCategoryAndActiveTrue(String category, Pageable pageable);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Product p SET p.quantity = p.quantity - :qty WHERE p.id = :id")
+    int updateStockQuantity(@Param("id") Long id, @Param("qty") BigDecimal qty);
+
     /** Get distinct categories */
     @Query("SELECT DISTINCT p.category FROM Product p WHERE p.active = true AND p.category IS NOT NULL ORDER BY p.category")
     List<String> findDistinctCategories();

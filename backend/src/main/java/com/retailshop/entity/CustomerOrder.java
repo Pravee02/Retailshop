@@ -48,6 +48,10 @@ public class CustomerOrder {
     private String notes;
 
     @Column(nullable = false)
+    @Builder.Default
+    private boolean processedAsSale = false;
+
+    @Column(nullable = false)
     private LocalDateTime orderDate;
 
     @PrePersist
@@ -63,6 +67,6 @@ public class CustomerOrder {
     }
 
     public enum OrderStatus {
-        PENDING, CONFIRMED, PROCESSING, COMPLETED, CANCELLED
+        PENDING, CONFIRMED, PROCESSING, COMPLETED, DELIVERED, CANCELLED
     }
 }

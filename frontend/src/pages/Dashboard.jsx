@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { dashboardAPI } from '../services/api';
 import { 
   FiPackage, FiDollarSign, FiShoppingCart, FiTrendingUp, 
-  FiAlertTriangle, FiXCircle, FiBarChart2 
+  FiAlertTriangle, FiXCircle, FiBarChart2, FiX
 } from 'react-icons/fi';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stockModal, setStockModal] = useState({ show: false, type: '', products: [] });
 
   useEffect(() => {
     loadDashboard();
@@ -118,7 +119,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="stat-card" style={{ '--card-accent': '#f59e0b' }}>
+        <div 
+          className="stat-card clickable" 
+          style={{ '--card-accent': '#f59e0b', cursor: 'pointer' }}
+          onClick={() => setStockModal({ show: true, type: 'Low Stock', products: data.lowStockProducts || [] })}
+        >
           <div className="stat-icon" style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>
             <FiAlertTriangle />
           </div>
@@ -128,7 +133,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="stat-card" style={{ '--card-accent': '#ef4444' }}>
+        <div 
+          className="stat-card clickable" 
+          style={{ '--card-accent': '#ef4444', cursor: 'pointer' }}
+          onClick={() => setStockModal({ show: true, type: 'Out of Stock', products: data.outOfStockProducts || [] })}
+        >
           <div className="stat-icon" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
             <FiXCircle />
           </div>
@@ -216,6 +225,57 @@ export default function Dashboard() {
               />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+      )}
+      {/* Stock Detail Modal */}
+      {stockModal.show && (
+        <div className="modal-overlay" onClick={() => setStockModal({ show: false, type: '', products: [] })}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%' }}>
+            <div className="modal-header">
+              <h2 className="flex items-center gap-sm">
+                {stockModal.type === 'Low Stock' ? <FiAlertTriangle className="text-warning" /> : <FiXCircle className="text-danger" />}
+                {stockModal.type} Products
+              </h2>
+              <button className="btn btn-ghost btn-icon" onClick={() => setStockModal({ show: false, type: '', products: [] })}>
+                <FiX />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="table-wrapper">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Product ID</th>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Quantity</th>
+                      <th>Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stockModal.products.length === 0 ? (
+                      <tr><td colSpan="5" className="text-center">No products found</td></tr>
+                    ) : (
+                      stockModal.products.map(p => (
+                        <tr key={p.id}>
+                          <td><code>{p.productCode}</code></td>
+                          <td><strong>{p.name}</strong></td>
+                          <td><span className="badge badge-primary">{p.category}</span></td>
+                          <td className={stockModal.type === 'Out of Stock' ? 'text-danger font-bold' : 'text-warning font-bold'}>
+                            {p.quantity}
+                          </td>
+                          <td>{p.unitType}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-primary" onClick={() => setStockModal({ show: false, type: '', products: [] })}>Close</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

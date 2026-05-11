@@ -31,6 +31,9 @@ public class OrderService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private SaleService saleService;
+
     /** Place a customer order */
     @Transactional
     public CustomerOrder createOrder(OrderRequest request) {
@@ -78,9 +81,21 @@ public class OrderService {
     /** Update order status */
     @Transactional
     public CustomerOrder updateStatus(Long id, String status) {
-        CustomerOrder order = orderRepository.findById(id)
+        CustomerOrder order = orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
-        order.setStatus(CustomerOrder.OrderStatus.valueOf(status.toUpperCase()));
+        
+        CustomerOrder.OrderStatus newStatus = CustomerOrder.OrderStatus.valueOf(status.toUpperCase());
+        
+        // If order is being completed/delivered and hasn't been processed as a sale yet
+        boolean isFinalStatus = newStatus == CustomerOrder.OrderStatus.COMPLETED || 
+                               newStatus == CustomerOrder.OrderStatus.DELIVERED;
+        
+        if (isFinalStatus && !order.isProcessedAsSale()) {
+            saleService.createSaleFromOrder(order);
+            order.setProcessedAsSale(true);
+        }
+        
+        order.setStatus(newStatus);
         return orderRepository.save(order);
     }
 

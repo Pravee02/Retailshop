@@ -23,4 +23,6 @@ public class DashboardResponse {
     private List<Map<String, Object>> dailyRevenue;
     private List<Map<String, Object>> topProducts;
     private List<Map<String, Object>> categorySales;
+    private List<ProductResponse> lowStockProducts;
+    private List<ProductResponse> outOfStockProducts;
 }

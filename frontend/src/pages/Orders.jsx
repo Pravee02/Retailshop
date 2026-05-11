@@ -10,6 +10,7 @@ const STATUS_COLORS = {
   CONFIRMED: 'badge-info',
   PROCESSING: 'badge-primary',
   COMPLETED: 'badge-success',
+  DELIVERED: 'badge-success',
   CANCELLED: 'badge-danger',
 };
 

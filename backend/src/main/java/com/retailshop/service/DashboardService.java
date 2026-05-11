@@ -19,6 +19,9 @@ public class DashboardService {
 
     @Autowired
     private ProductRepository productRepository;
+    
+    @Autowired
+    private ProductService productService;
 
     @Autowired
     private SaleRepository saleRepository;
@@ -80,6 +83,12 @@ public class DashboardService {
             topProducts.add(item);
         }
 
+        // Detailed stock lists
+        List<com.retailshop.dto.ProductResponse> lowStockProducts = productRepository.findLowStockProducts().stream()
+                .map(productService::toResponse).toList();
+        List<com.retailshop.dto.ProductResponse> outOfStockProducts = productRepository.findOutOfStockProducts().stream()
+                .map(productService::toResponse).toList();
+
         return DashboardResponse.builder()
                 .totalProducts(totalProducts)
                 .totalStockValue(totalStockValue)
@@ -95,6 +104,8 @@ public class DashboardService {
                 .outOfStockCount(outOfStockCount)
                 .dailyRevenue(dailyRevenue)
                 .topProducts(topProducts)
+                .lowStockProducts(lowStockProducts)
+                .outOfStockProducts(outOfStockProducts)
                 .build();
     }
 }
