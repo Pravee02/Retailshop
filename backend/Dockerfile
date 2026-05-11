@@ -4,9 +4,8 @@ WORKDIR /app
 
 COPY . .
 
-RUN chmod +x mvnw
 
-RUN ./mvnw clean package -DskipTests
+RUN apk add --no-cache maven && mvn clean package -DskipTests
 
 EXPOSE 8080
 
