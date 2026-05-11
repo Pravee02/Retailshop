@@ -404,9 +404,9 @@ export default function Billing() {
                     <tbody>
                       {billItems.map((item, index) => (
                         <tr key={index}>
-                          <td>{index + 1}</td>
-                          <td><span className="text-muted" style={{ fontSize: '11px' }}>{item.productCode || '—'}</span></td>
-                          <td>
+                          <td data-label="#">{index + 1}</td>
+                          <td data-label="ID"><span className="text-muted" style={{ fontSize: '11px' }}>{item.productCode || '—'}</span></td>
+                          <td data-label="Product">
                             <div className="product-name-cell">
                               <span className="product-name-main" style={{ fontWeight: 600 }}>{item.productName}</span>
                               <div className="quick-units">
@@ -422,20 +422,18 @@ export default function Billing() {
                               </div>
                             </div>
                           </td>
-                          <td>
+                          <td data-label="Quantity">
                             <input
                               type="text"
                               inputMode="decimal"
-                              className="form-input"
-                              style={{ width: 80, padding: '8px', height: '36px', textAlign: 'center' }}
+                              className="form-input billing-input"
                               value={item.quantity}
                               onChange={(e) => updateItemQuantity(index, e.target.value)}
                             />
                           </td>
-                          <td>
+                          <td data-label="Unit">
                             <select
-                              className="form-select"
-                              style={{ width: 90, padding: '8px', height: '36px', fontSize: '12px' }}
+                              className="form-select billing-select"
                               value={item.unit}
                               onChange={(e) => updateItemUnit(index, e.target.value)}
                             >
@@ -444,18 +442,17 @@ export default function Billing() {
                               ))}
                             </select>
                           </td>
-                          <td>
+                          <td data-label="Price">
                             <input
                               type="text"
                               inputMode="decimal"
-                              className="form-input"
-                              style={{ width: 90, padding: '8px', height: '36px', textAlign: 'center' }}
+                              className="form-input billing-input"
                               value={item.pricePerUnit}
                               onChange={(e) => updateItemPrice(index, e.target.value)}
                             />
                           </td>
-                          <td><strong>₹{item.total.toFixed(2)}</strong></td>
-                          <td>
+                          <td data-label="Total"><strong>₹{item.total.toFixed(2)}</strong></td>
+                          <td data-label="Action">
                             <button className="btn btn-ghost btn-sm text-danger" onClick={() => removeItem(index)}>
                               <FiTrash2 />
                             </button>
