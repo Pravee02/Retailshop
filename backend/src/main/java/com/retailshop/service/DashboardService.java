@@ -1,6 +1,8 @@
 package com.retailshop.service;
 
 import com.retailshop.dto.DashboardResponse;
+import com.retailshop.dto.ProductResponse;
+import com.retailshop.entity.Product;
 import com.retailshop.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,8 +42,6 @@ public class DashboardService {
         // Product stats
         long totalProducts = productRepository.countByActiveTrue();
         BigDecimal totalStockValue = productRepository.getTotalStockValue();
-        int lowStockCount = productRepository.findLowStockProducts().size();
-        int outOfStockCount = productRepository.findOutOfStockProducts().size();
 
         // Today's sales
         long todaySalesCount = saleRepository.countSalesBetween(todayStart, todayEnd);
@@ -87,17 +87,17 @@ public class DashboardService {
         List<Product> lowStockEntities = productRepository.findLowStockProducts();
         List<Product> outOfStockEntities = productRepository.findOutOfStockProducts();
 
-        long lowStockCount = lowStockEntities.size();
-        long outOfStockCount = outOfStockEntities.size();
+        int lowStockCount = lowStockEntities.size();
+        int outOfStockCount = outOfStockEntities.size();
 
         // Convert to DTOs for the modals
-        List<com.retailshop.dto.ProductResponse> lowStockProducts = lowStockEntities.stream()
+        List<ProductResponse> lowStockProducts = lowStockEntities.stream()
                 .map(productService::toResponse)
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
         
-        List<com.retailshop.dto.ProductResponse> outOfStockProducts = outOfStockEntities.stream()
+        List<ProductResponse> outOfStockProducts = outOfStockEntities.stream()
                 .map(productService::toResponse)
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
 
         return DashboardResponse.builder()
                 .totalProducts(totalProducts)
