@@ -19,10 +19,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 responses globally
+// Handle responses and retries
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+    
+    // If it's a 401, handle as logout
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
@@ -30,7 +33,21 @@ api.interceptors.response.use(
       if (window.location.pathname !== '/login' && window.location.pathname !== '/customer/login') {
         window.location.href = isCustomerPath ? '/customer/login' : '/login';
       }
+      return Promise.reject(error);
     }
+
+    // Retry logic for 5xx errors or timeouts (max 2 retries)
+    config.retryCount = config.retryCount || 0;
+    const shouldRetry = (error.code === 'ECONNABORTED' || error.response?.status >= 500) && config.retryCount < 2;
+
+    if (shouldRetry) {
+      config.retryCount += 1;
+      console.warn(`Retrying request (${config.retryCount}/2): ${config.url}`);
+      // Wait a bit before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, config.retryCount * 1000));
+      return api(config);
+    }
+
     return Promise.reject(error);
   }
 );

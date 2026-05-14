@@ -16,6 +16,7 @@ export default function Inventory() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [dashData, setDashData] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -23,17 +24,25 @@ export default function Inventory() {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
+      // Use individual try-catches or handled Promise.all to prevent one failure from breaking everything
       const [prodRes, lowRes, dashRes] = await Promise.all([
-        productAPI.getAll(page, 20, search),
-        productAPI.getLowStock(),
-        dashboardAPI.getData(),
+        productAPI.getAll(page, 20, search).catch(err => { console.error('Products failed', err); return { data: { content: [], totalPages: 0 } }; }),
+        productAPI.getLowStock().catch(err => { console.error('Low stock failed', err); return { data: [] }; }),
+        dashboardAPI.getData().catch(err => { console.error('Dashboard failed', err); return { data: null }; }),
       ]);
-      setProducts(prodRes.data.content);
-      setTotalPages(prodRes.data.totalPages);
-      setLowStock(lowRes.data);
+      
+      setProducts(prodRes.data.content || []);
+      setTotalPages(prodRes.data.totalPages || 0);
+      setLowStock(lowRes.data || []);
       setDashData(dashRes.data);
+
+      if (!prodRes.data.content.length && !dashRes.data) {
+        throw new Error('Could not connect to the server. Please check your internet or retry.');
+      }
     } catch (error) {
+      setError(error.message || 'Failed to load inventory data');
       toast.error('Failed to load inventory data');
     } finally {
       setLoading(false);
@@ -143,49 +152,62 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* Inventory Table */}
-      <div className="table-container table-mobile-cards" style={{ position: 'relative', minHeight: '200px' }}>
-        {loading && (
-          <div className="loading-overlay" style={{ position: 'absolute', background: 'rgba(0,0,0,0.1)' }}>
-            <div className="spinner"></div>
-          </div>
-        )}
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Product</th>
-                <th>Category</th>
-                <th>Stock</th>
-                <th>Unit</th>
-                <th>Price/Unit</th>
-                <th>Stock Value</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map(product => (
-                <tr key={product.id}>
-                  <td data-label="ID">{product.productCode || `#${product.id}`}</td>
-                  <td data-label="Product">
-                    <strong>{product.name}</strong>
-                    {product.localName && <div className="text-muted" style={{ fontSize: 'var(--font-xs)' }}>{product.localName}</div>}
-                  </td>
-                  <td data-label="Category"><span className="badge badge-primary">{product.category || '—'}</span></td>
-                  <td data-label="Stock"><strong>{product.quantity}</strong></td>
-                  <td data-label="Unit">{product.unitType}</td>
-                  <td data-label="Price/Unit">₹{product.pricePerUnit}</td>
-                  <td data-label="Stock Value">₹{(product.quantity * product.pricePerUnit).toFixed(2)}</td>
-                  <td data-label="Status">{getStockBadge(product)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {error ? (
+        <div className="card flex flex-column items-center justify-center text-center" style={{ minHeight: '300px' }}>
+          <div className="empty-icon text-danger"><FiXCircle /></div>
+          <h3>Connection Error</h3>
+          <p className="text-muted">{error}</p>
+          <button className="btn btn-primary mt-md" onClick={loadData}>Retry Loading</button>
         </div>
-      </div>
+      ) : (
+        /* Inventory Table */
+        <div className="table-container table-mobile-cards" style={{ position: 'relative', minHeight: '200px' }}>
+          {loading && (
+            <div className="loading-overlay" style={{ position: 'absolute', background: 'rgba(0,0,0,0.1)' }}>
+              <div className="spinner"></div>
+            </div>
+          )}
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Stock</th>
+                  <th>Unit</th>
+                  <th>Price/Unit</th>
+                  <th>Stock Value</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.length === 0 && !loading ? (
+                  <tr><td colSpan="8" className="text-center">No products found</td></tr>
+                ) : (
+                  products.map(product => (
+                    <tr key={product.id}>
+                      <td data-label="ID">{product.productCode || `#${product.id}`}</td>
+                      <td data-label="Product">
+                        <strong>{product.name}</strong>
+                        {product.localName && <div className="text-muted" style={{ fontSize: 'var(--font-xs)' }}>{product.localName}</div>}
+                      </td>
+                      <td data-label="Category"><span className="badge badge-primary">{product.category || '—'}</span></td>
+                      <td data-label="Stock"><strong>{product.quantity}</strong></td>
+                      <td data-label="Unit">{product.unitType}</td>
+                      <td data-label="Price/Unit">₹{product.pricePerUnit}</td>
+                      <td data-label="Stock Value">₹{(product.quantity * product.pricePerUnit).toFixed(2)}</td>
+                      <td data-label="Status">{getStockBadge(product)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-      {totalPages > 1 && (
+      {totalPages > 1 && !error && (
         <div className="pagination">
           <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>Previous</button>
           {Array.from({ length: totalPages }, (_, i) => (

@@ -17,6 +17,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stockModal, setStockModal] = useState({ show: false, type: '', products: [] });
 
   useEffect(() => {
@@ -24,10 +25,13 @@ export default function Dashboard() {
   }, []);
 
   const loadDashboard = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await dashboardAPI.getData();
       setData(response.data);
     } catch (error) {
+      setError(error.message || 'Failed to load dashboard data');
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -39,6 +43,19 @@ export default function Dashboard() {
       <div className="loading-overlay">
         <div className="spinner"></div>
         <p>{t('common.loading')}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page-container flex flex-column items-center justify-center text-center" style={{ minHeight: '60vh' }}>
+        <div className="empty-icon text-danger"><FiXCircle /></div>
+        <h2 style={{ marginTop: 'var(--space-md)' }}>Oops! Something went wrong</h2>
+        <p className="text-muted">{error}</p>
+        <button className="btn btn-primary mt-lg" onClick={loadDashboard}>
+          Retry Connection
+        </button>
       </div>
     );
   }

@@ -19,6 +19,8 @@ import java.util.*;
 @Service
 public class DashboardService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DashboardService.class);
+
     @Autowired
     private ProductRepository productRepository;
     
@@ -34,11 +36,12 @@ public class DashboardService {
     /** Get complete dashboard analytics */
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public DashboardResponse getDashboardData() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-        LocalDateTime todayEnd = LocalDate.now().atTime(23, 59, 59);
-        LocalDateTime weekStart = LocalDate.now().minusDays(7).atStartOfDay();
-        LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+            LocalDateTime todayEnd = LocalDate.now().atTime(23, 59, 59);
+            LocalDateTime weekStart = LocalDate.now().minusDays(7).atStartOfDay();
+            LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
 
         // Product stats
         long totalProducts = productRepository.countByActiveTrue();
@@ -102,23 +105,32 @@ public class DashboardService {
                 .map(productService::toResponse)
                 .toList();
 
-        return DashboardResponse.builder()
-                .totalProducts(totalProducts)
-                .totalStockValue(totalStockValue)
-                .todaySalesCount(todaySalesCount)
-                .todayRevenue(todayRevenue)
-                .weeklySalesCount(weeklySalesCount)
-                .weeklyRevenue(weeklyRevenue)
-                .monthlySalesCount(monthlySalesCount)
-                .monthlyRevenue(monthlyRevenue)
-                .monthlyPurchaseCost(monthlyPurchaseCost)
-                .estimatedProfit(estimatedProfit)
-                .lowStockCount((int) lowStockCount)
-                .outOfStockCount((int) outOfStockCount)
-                .dailyRevenue(dailyRevenue)
-                .topProducts(topProducts)
-                .lowStockProducts(lowStockProducts)
-                .outOfStockProducts(outOfStockProducts)
-                .build();
+            return DashboardResponse.builder()
+                    .totalProducts(totalProducts)
+                    .totalStockValue(safe(totalStockValue))
+                    .todaySalesCount(todaySalesCount)
+                    .todayRevenue(safe(todayRevenue))
+                    .weeklySalesCount(weeklySalesCount)
+                    .weeklyRevenue(safe(weeklyRevenue))
+                    .monthlySalesCount(monthlySalesCount)
+                    .monthlyRevenue(safe(monthlyRevenue))
+                    .monthlyPurchaseCost(safe(monthlyPurchaseCost))
+                    .estimatedProfit(safe(estimatedProfit))
+                    .lowStockCount((int) lowStockCount)
+                    .outOfStockCount((int) outOfStockCount)
+                    .dailyRevenue(dailyRevenue)
+                    .topProducts(topProducts)
+                    .lowStockProducts(lowStockProducts)
+                    .outOfStockProducts(outOfStockProducts)
+                    .categorySales(new ArrayList<>())
+                    .build();
+        } catch (Exception e) {
+            log.error("Error calculating dashboard metrics", e);
+            throw e;
+        }
+    }
+
+    private BigDecimal safe(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }
