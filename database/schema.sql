@@ -36,9 +36,12 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ensure product_code exists (renamed from barcode or added)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS product_code VARCHAR(50) UNIQUE;
+
 CREATE INDEX IF NOT EXISTS idx_product_name ON products(name);
 CREATE INDEX IF NOT EXISTS idx_product_category ON products(category);
-CREATE INDEX IF NOT EXISTS idx_product_barcode ON products(barcode);
+CREATE INDEX IF NOT EXISTS idx_product_code ON products(product_code);
 
 -- Customers table
 CREATE TABLE IF NOT EXISTS customers (
@@ -129,8 +132,12 @@ CREATE TABLE IF NOT EXISTS customer_orders (
     total_amount DECIMAL(14,2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     notes VARCHAR(500),
+    processed_as_sale BOOLEAN NOT NULL DEFAULT FALSE,
     order_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Ensure processed_as_sale column exists for existing databases
+ALTER TABLE customer_orders ADD COLUMN IF NOT EXISTS processed_as_sale BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Order items table
 CREATE TABLE IF NOT EXISTS order_items (

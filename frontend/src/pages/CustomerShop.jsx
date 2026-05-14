@@ -74,7 +74,10 @@ export default function CustomerShop() {
       toast.success(t('shop.orderPlaced'));
       clearCart(); setShowCart(false); setShowOrderForm(false);
       setOrderForm({ customerName: user?.fullName || '', customerPhone: '', customerAddress: '' });
-    } catch (e) { toast.error('Failed to place order'); }
+    } catch (e) { 
+      console.error('Order placement error:', e);
+      toast.error(e.response?.data?.message || 'Failed to place order. Please try again.'); 
+    }
     finally { setSubmitting(false); }
   };
 

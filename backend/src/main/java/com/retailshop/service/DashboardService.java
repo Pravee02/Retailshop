@@ -32,6 +32,7 @@ public class DashboardService {
     private PurchaseRepository purchaseRepository;
 
     /** Get complete dashboard analytics */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public DashboardResponse getDashboardData() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
@@ -90,12 +91,14 @@ public class DashboardService {
         int lowStockCount = lowStockEntities.size();
         int outOfStockCount = outOfStockEntities.size();
 
-        // Convert to DTOs for the modals
+        // Convert to DTOs for the modals (limit to top 50 to avoid massive JSON)
         List<ProductResponse> lowStockProducts = lowStockEntities.stream()
+                .limit(50)
                 .map(productService::toResponse)
                 .toList();
         
         List<ProductResponse> outOfStockProducts = outOfStockEntities.stream()
+                .limit(50)
                 .map(productService::toResponse)
                 .toList();
 

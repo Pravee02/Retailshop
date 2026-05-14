@@ -180,6 +180,7 @@ public class SaleService {
     }
 
     /** Get sale by ID */
+    @Transactional(readOnly = true)
     public SaleResponse getSale(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sale not found with ID: " + id));
@@ -187,6 +188,7 @@ public class SaleService {
     }
 
     /** Get sale by bill number */
+    @Transactional(readOnly = true)
     public SaleResponse getSaleByBillNumber(String billNumber) {
         Sale sale = saleRepository.findByBillNumber(billNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Sale not found: " + billNumber));
@@ -194,6 +196,7 @@ public class SaleService {
     }
 
     /** Get all sales with pagination */
+    @Transactional(readOnly = true)
     public Page<SaleResponse> getAllSales(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return saleRepository.findAllByOrderBySaleDateDesc(pageable)

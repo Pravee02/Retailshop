@@ -47,7 +47,7 @@ public class CustomerOrder {
     @Column(length = 500)
     private String notes;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private boolean processedAsSale = false;
 

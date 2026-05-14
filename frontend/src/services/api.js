@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.MODE === 'development'
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 60000, // 60 seconds timeout to handle cold starts (especially on Render free tier)
 });
 
 // Attach JWT token to every request
@@ -25,8 +26,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      const isCustomerPath = window.location.pathname.startsWith('/customer');
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/customer/login') {
+        window.location.href = isCustomerPath ? '/customer/login' : '/login';
       }
     }
     return Promise.reject(error);

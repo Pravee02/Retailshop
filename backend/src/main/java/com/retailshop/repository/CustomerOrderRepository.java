@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Long> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"items"})
     Page<CustomerOrder> findAllByOrderByOrderDateDesc(Pageable pageable);
     Page<CustomerOrder> findByStatusOrderByOrderDateDesc(CustomerOrder.OrderStatus status, Pageable pageable);
     java.util.List<CustomerOrder> findByCustomerNameOrderByOrderDateDesc(String customerName);

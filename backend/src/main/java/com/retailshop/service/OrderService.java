@@ -37,7 +37,7 @@ public class OrderService {
     /** Place a customer order */
     @Transactional
     public CustomerOrder createOrder(OrderRequest request) {
-        String orderNumber = "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String orderNumber = "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS"));
 
         CustomerOrder order = CustomerOrder.builder()
                 .orderNumber(orderNumber)
@@ -74,6 +74,7 @@ public class OrderService {
     }
 
     /** Get all orders (for admin) */
+    @Transactional(readOnly = true)
     public Page<CustomerOrder> getAllOrders(int page, int size) {
         return orderRepository.findAllByOrderByOrderDateDesc(PageRequest.of(page, size));
     }
@@ -100,6 +101,7 @@ public class OrderService {
     }
 
     /** Get my orders (for customer) */
+    @Transactional(readOnly = true)
     public java.util.List<CustomerOrder> getMyOrders(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
