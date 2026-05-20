@@ -4,6 +4,7 @@ import com.retailshop.dto.*;
 import com.retailshop.entity.*;
 import com.retailshop.exception.*;
 import com.retailshop.repository.*;
+import com.retailshop.security.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ import java.util.List;
 
 /**
  * Sales service handling billing operations.
- * Automatically deducts stock and logs inventory changes.
+ * MULTI-USER: All operations are scoped to the current authenticated admin.
  */
 @Service
 public class SaleService {
@@ -37,14 +38,18 @@ public class SaleService {
     @Autowired
     private InventoryLogRepository inventoryLogRepository;
 
-    /** Create a new sale and generate bill */
+    @Autowired
+    private SecurityUtils securityUtils;
+
+    /** Create a new sale and generate bill — scoped to current admin */
     @Transactional
     public SaleResponse createSale(SaleRequest request) {
-        Sale sale = processSaleInternal(request);
+        User owner = securityUtils.getCurrentUser();
+        Sale sale = processSaleInternal(request, owner);
         return toResponse(sale);
     }
 
-    /** Create a sale from an existing customer order */
+    /** Create a sale from an existing customer order — uses order's owner */
     @Transactional
     public void createSaleFromOrder(CustomerOrder order) {
         if (order.getItems() == null || order.getItems().isEmpty()) {
@@ -70,18 +75,16 @@ public class SaleService {
                 }).toList();
 
         request.setItems(itemRequests);
-        processSaleInternal(request);
+        // Use the order's owner so sale lands in the correct shop
+        processSaleInternal(request, order.getOwner());
     }
 
-    /** 
-     * Core sale processing logic shared by direct sales and customer orders.
-     * Handles bill generation, stock deduction, and inventory logging.
+    /**
+     * Core sale processing logic — accepts explicit owner for createSaleFromOrder.
      */
-    private Sale processSaleInternal(SaleRequest request) {
-        // Generate bill number: BILL-YYYYMMDD-XXXX
-        String billNumber = generateBillNumber();
+    private Sale processSaleInternal(SaleRequest request, User owner) {
+        String billNumber = generateBillNumber(owner);
 
-        // Handle customer
         Customer customer = null;
         if (request.getCustomerPhone() != null && !request.getCustomerPhone().isEmpty()) {
             customer = customerRepository.findByPhone(request.getCustomerPhone())
@@ -93,8 +96,8 @@ public class SaleService {
                     ));
         }
 
-        // Create sale
         Sale sale = Sale.builder()
+                .owner(owner)
                 .billNumber(billNumber)
                 .customer(customer)
                 .customerName(request.getCustomerName())
@@ -107,7 +110,6 @@ public class SaleService {
             sale.setPaymentMethod(Sale.PaymentMethod.valueOf(request.getPaymentMethod().toUpperCase()));
         }
 
-        // Process items
         BigDecimal subtotal = BigDecimal.ZERO;
         AtomicInteger serialNum = new AtomicInteger(1);
 
@@ -115,7 +117,6 @@ public class SaleService {
             Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + itemReq.getProductId()));
 
-            // Determine price (use override or calculate)
             BigDecimal pricePerUnit = itemReq.getPricePerUnit();
             if (pricePerUnit == null) {
                 String unit = itemReq.getUnit() != null ? itemReq.getUnit() : product.getUnitType().name();
@@ -137,10 +138,7 @@ public class SaleService {
             sale.addItem(saleItem);
             subtotal = subtotal.add(itemTotal);
 
-            // Deduct stock (matching working Admin Billing flow)
-            BigDecimal deductionQty = productService.convertQuantityForDeduction(
-                    product, itemReq.getQuantity(), itemReq.getUnit());
-            
+            BigDecimal deductionQty = productService.convertQuantityForDeduction(product, itemReq.getQuantity(), itemReq.getUnit());
             product.setQuantity(product.getQuantity().subtract(deductionQty));
 
             if (product.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
@@ -148,9 +146,8 @@ public class SaleService {
             }
 
             productRepository.save(product);
-            productRepository.flush(); // Force immediate update to DB
+            productRepository.flush();
 
-            // Log inventory change
             InventoryLog log = InventoryLog.builder()
                     .product(product)
                     .type(InventoryLog.LogType.SALE)
@@ -162,7 +159,6 @@ public class SaleService {
             inventoryLogRepository.save(log);
         }
 
-        // Calculate totals
         sale.setSubtotal(subtotal);
 
         BigDecimal taxPercent = request.getTaxPercent() != null ? request.getTaxPercent() : BigDecimal.ZERO;
@@ -195,24 +191,25 @@ public class SaleService {
         return toResponse(sale);
     }
 
-    /** Get all sales with pagination */
+    /** Get all sales — scoped to current admin */
     @Transactional(readOnly = true)
     public Page<SaleResponse> getAllSales(int page, int size) {
+        User owner = securityUtils.getCurrentUser();
         Pageable pageable = PageRequest.of(page, size);
-        return saleRepository.findAllByOrderBySaleDateDesc(pageable)
+        return saleRepository.findByOwnerOrderBySaleDateDesc(owner, pageable)
                 .map(this::toResponse);
     }
 
-    /** Generate unique bill number */
-    private String generateBillNumber() {
+    /** Generate unique bill number — scoped to owner so two shops can both have BILL-20250520-0001 */
+    private String generateBillNumber(User owner) {
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        long count = saleRepository.countSalesBetween(
+        long count = saleRepository.countSalesBetweenByOwner(
+                owner,
                 LocalDateTime.now().toLocalDate().atStartOfDay(),
                 LocalDateTime.now().toLocalDate().atTime(23, 59, 59));
         return String.format("BILL-%s-%04d", dateStr, count + 1);
     }
 
-    /** Convert Sale entity to response DTO */
     private SaleResponse toResponse(Sale sale) {
         List<SaleResponse.SaleItemResponse> items = sale.getItems().stream()
                 .map(item -> SaleResponse.SaleItemResponse.builder()

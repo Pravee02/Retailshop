@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 
 /**
  * Purchase entity representing stock purchase/replenishment entries.
+ * 
+ * MULTI-USER: Each purchase belongs to an owner (Admin user/shop).
  */
 @Entity
 @Table(name = "purchases")
@@ -16,6 +18,12 @@ public class Purchase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /** Owner admin — every purchase belongs to exactly one admin/shop */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private User owner;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)

@@ -2,8 +2,10 @@ package com.retailshop.service;
 
 import com.retailshop.dto.*;
 import com.retailshop.entity.Product;
+import com.retailshop.entity.User;
 import com.retailshop.exception.*;
 import com.retailshop.repository.ProductRepository;
+import com.retailshop.security.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -15,7 +17,7 @@ import java.util.List;
 
 /**
  * Product service handling CRUD and price calculations.
- * Implements flexible quantity-based pricing (KG→Gram, Liter→ML).
+ * MULTI-USER: All read/write operations are scoped to the authenticated admin.
  */
 @Service
 public class ProductService {
@@ -23,37 +25,61 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
-    /** Get all active products with pagination and smart search */
+    @Autowired
+    private SecurityUtils securityUtils;
+
+    /**
+     * Get all active products for the current admin.
+     * Falls back to a public (owner-free) listing for the customer shop.
+     */
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getAllProducts(int page, int size, String search) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-        Page<Product> products;
 
-        if (search != null && !search.trim().isEmpty()) {
-            String keyword = search.trim();
-            // Search by name (partial) or Product ID (exact)
-            products = productRepository.searchProducts(keyword, pageable);
+        // Try to get current user; if anonymous/not found use unscoped query (customer shop)
+        User owner = tryGetCurrentUser();
+
+        Page<Product> products;
+        if (owner != null && owner.getRole() == User.Role.ADMIN) {
+            // Admin: show ONLY their own products
+            if (search != null && !search.trim().isEmpty()) {
+                products = productRepository.searchProductsByOwner(search.trim(), owner, pageable);
+            } else {
+                products = productRepository.findByActiveTrueAndOwner(owner, pageable);
+            }
         } else {
-            products = productRepository.findByActiveTrue(pageable);
+            // Customer / public: show all active products (global catalog)
+            if (search != null && !search.trim().isEmpty()) {
+                products = productRepository.searchProducts(search.trim(), pageable);
+            } else {
+                products = productRepository.findByActiveTrue(pageable);
+            }
         }
 
         return products.map(this::toResponse);
     }
 
-    /** Get product by ID */
+    /** Get product by ID (no owner filter — needed for sale item lookup) */
+    @Transactional(readOnly = true)
     public ProductResponse getProduct(Long id) {
-        Product product = findProductById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
         return toResponse(product);
     }
 
-    /** Create a new product */
+    /** Create a new product — scoped to current admin */
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
-        // Validate Product ID uniqueness
-        if (productRepository.existsByProductCodeAndActiveTrue(request.getProductCode())) {
-            throw new BadRequestException("Product ID '" + request.getProductCode() + "' already exists. Please use a unique Product ID.");
+        User owner = securityUtils.getCurrentUser();
+
+        // Validate Product ID uniqueness per owner
+        if (request.getProductCode() != null && !request.getProductCode().isBlank()
+                && productRepository.existsByProductCodeAndActiveTrueAndOwner(request.getProductCode(), owner)) {
+            throw new BadRequestException("Product ID '" + request.getProductCode() + "' already exists in your shop. Please use a unique Product ID.");
         }
 
         Product product = Product.builder()
+                .owner(owner)
                 .name(request.getName())
                 .localName(request.getLocalName())
                 .category(request.getCategory())
@@ -72,14 +98,16 @@ public class ProductService {
         return toResponse(product);
     }
 
-    /** Update an existing product */
+    /** Update an existing product — verifies ownership */
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest request) {
-        Product product = findProductById(id);
+        User owner = securityUtils.getCurrentUser();
+        Product product = findProductByIdAndOwner(id, owner);
 
-        // Validate Product ID uniqueness (exclude current product)
-        if (productRepository.existsByProductCodeAndActiveTrueAndIdNot(request.getProductCode(), id)) {
-            throw new BadRequestException("Product ID '" + request.getProductCode() + "' already exists. Please use a unique Product ID.");
+        // Validate Product ID uniqueness (exclude current product) per owner
+        if (request.getProductCode() != null && !request.getProductCode().isBlank()
+                && productRepository.existsByProductCodeAndActiveTrueAndOwnerAndIdNot(request.getProductCode(), owner, id)) {
+            throw new BadRequestException("Product ID '" + request.getProductCode() + "' already exists in your shop. Please use a unique Product ID.");
         }
 
         product.setName(request.getName());
@@ -100,33 +128,38 @@ public class ProductService {
         return toResponse(product);
     }
 
-    /** Soft delete a product */
+    /** Soft delete a product — verifies ownership */
     @Transactional
     public void deleteProduct(Long id) {
-        Product product = findProductById(id);
+        User owner = securityUtils.getCurrentUser();
+        Product product = findProductByIdAndOwner(id, owner);
         product.setActive(false);
         productRepository.save(product);
     }
 
-    /** Get low stock products */
+    /** Get low stock products — scoped to current admin */
+    @Transactional(readOnly = true)
     public List<ProductResponse> getLowStockProducts() {
+        User owner = tryGetCurrentUser();
+        if (owner != null && owner.getRole() == User.Role.ADMIN) {
+            return productRepository.findLowStockProductsByOwner(owner).stream()
+                    .map(this::toResponse).toList();
+        }
         return productRepository.findLowStockProducts().stream()
-                .map(this::toResponse)
-                .toList();
+                .map(this::toResponse).toList();
     }
 
-    /** Get all distinct categories */
+    /** Get all distinct categories — scoped to current admin */
+    @Transactional(readOnly = true)
     public List<String> getCategories() {
+        User owner = tryGetCurrentUser();
+        if (owner != null && owner.getRole() == User.Role.ADMIN) {
+            return productRepository.findDistinctCategoriesByOwner(owner);
+        }
         return productRepository.findDistinctCategories();
     }
 
-    /**
-     * Calculate price based on flexible quantity.
-     * E.g., if base unit is KG and price is ₹400/KG:
-     *   - 100 GRAM → ₹40
-     *   - 500 GRAM → ₹200
-     *   - 250 ML → calculated based on conversion
-     */
+    /** Calculate price for a product */
     public PriceCalculation calculatePrice(Long productId, BigDecimal quantity, String unit) {
         Product product = findProductById(productId);
         BigDecimal calculatedPrice = computePrice(product, quantity, unit);
@@ -142,47 +175,24 @@ public class ProductService {
                 .build();
     }
 
-    /**
-     * Core price calculation logic with unit conversion.
-     */
+    /** Core price calculation logic with unit conversion */
     public BigDecimal computePrice(Product product, BigDecimal quantity, String requestedUnit) {
         BigDecimal pricePerBaseUnit = product.getPricePerUnit();
         String baseUnit = product.getUnitType().name();
         String reqUnit = requestedUnit != null ? requestedUnit.toUpperCase() : baseUnit;
 
-        // Convert requested quantity to base unit quantity
         BigDecimal baseQuantity = convertToBaseUnit(quantity, reqUnit, baseUnit);
-
-        // Calculate price
         return pricePerBaseUnit.multiply(baseQuantity).setScale(2, RoundingMode.HALF_UP);
     }
 
-    /**
-     * Convert quantity from requested unit to base unit.
-     * Supports: KG↔GRAM, LITER↔ML
-     */
     private BigDecimal convertToBaseUnit(BigDecimal quantity, String fromUnit, String toUnit) {
-        if (fromUnit.equals(toUnit)) {
-            return quantity;
-        }
+        if (fromUnit.equals(toUnit)) return quantity;
 
-        // KG and GRAM conversions
-        if (fromUnit.equals("GRAM") && toUnit.equals("KG")) {
-            return quantity.divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
-        }
-        if (fromUnit.equals("KG") && toUnit.equals("GRAM")) {
-            return quantity.multiply(BigDecimal.valueOf(1000));
-        }
+        if (fromUnit.equals("GRAM") && toUnit.equals("KG")) return quantity.divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
+        if (fromUnit.equals("KG") && toUnit.equals("GRAM")) return quantity.multiply(BigDecimal.valueOf(1000));
+        if (fromUnit.equals("ML") && toUnit.equals("LITER")) return quantity.divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
+        if (fromUnit.equals("LITER") && toUnit.equals("ML")) return quantity.multiply(BigDecimal.valueOf(1000));
 
-        // LITER and ML conversions
-        if (fromUnit.equals("ML") && toUnit.equals("LITER")) {
-            return quantity.divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
-        }
-        if (fromUnit.equals("LITER") && toUnit.equals("ML")) {
-            return quantity.multiply(BigDecimal.valueOf(1000));
-        }
-
-        // If units don't have a known conversion, treat as same unit
         return quantity;
     }
 
@@ -195,9 +205,26 @@ public class ProductService {
 
     // --- Helpers ---
 
-    Product findProductById(Long id) {
+    /** Find product by ID — no owner filter (used for sale processing) */
+    public Product findProductById(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+    }
+
+    /** Find product by ID and verify it belongs to the given owner */
+    public Product findProductByIdAndOwner(Long id, User owner) {
+        return productRepository.findByIdAndOwner(id, owner)
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+    }
+
+    /** Try to get the current user without throwing — returns null if anonymous */
+    private User tryGetCurrentUser() {
+        try {
+            return securityUtils.getCurrentUser();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public ProductResponse toResponse(Product p) {

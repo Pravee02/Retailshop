@@ -10,6 +10,8 @@ import java.util.List;
 /**
  * CustomerOrder entity for orders placed by customers through the portal.
  * These orders are visible to the shop manager for processing.
+ *
+ * MULTI-USER: Each order belongs to an owner (Admin user/shop).
  */
 @Entity
 @Table(name = "customer_orders")
@@ -19,6 +21,12 @@ public class CustomerOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /** Owner admin — which shop received this order */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private User owner;
 
     @Column(nullable = false, unique = true, length = 30)
     private String orderNumber;

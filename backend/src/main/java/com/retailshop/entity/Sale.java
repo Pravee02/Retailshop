@@ -10,11 +10,14 @@ import java.util.List;
 /**
  * Sale entity representing a complete sales transaction.
  * Contains customer info, bill details, and line items.
+ * 
+ * MULTI-USER: Each sale belongs to an owner (Admin user/shop).
  */
 @Entity
 @Table(name = "sales", indexes = {
     @Index(name = "idx_sale_date", columnList = "saleDate"),
-    @Index(name = "idx_sale_bill", columnList = "billNumber")
+    @Index(name = "idx_sale_bill", columnList = "billNumber"),
+    @Index(name = "idx_sale_owner", columnList = "owner_id")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Sale {
@@ -22,6 +25,12 @@ public class Sale {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /** Owner admin — every sale belongs to exactly one admin/shop */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private User owner;
 
     @Column(nullable = false, unique = true, length = 30)
     private String billNumber;

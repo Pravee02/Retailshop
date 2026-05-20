@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Authentication service handling login and registration.
+ * MULTI-USER: Supports both ADMIN and CUSTOMER self-registration.
+ * Admins each get their own isolated data space (shop).
  */
 @Service
 public class AuthService {
@@ -48,10 +50,15 @@ public class AuthService {
                 .build();
     }
 
-    /** Register a new user */
+    /**
+     * Register a new user.
+     * Role is determined by the 'role' field in the request:
+     *   - "ADMIN" → creates a new shop admin with isolated data
+     *   - anything else (or null) → creates a CUSTOMER account
+     */
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("Name already exists. Please use a different name.");
+            throw new BadRequestException("Username already exists. Please choose a different username.");
         }
 
         if (request.getPhone() != null && !request.getPhone().isBlank()) {
@@ -60,12 +67,16 @@ public class AuthService {
             }
         }
 
-        User.Role role = User.Role.CUSTOMER; // Force CUSTOMER role for security
+        // Determine role — allow ADMIN registration explicitly
+        User.Role role = User.Role.CUSTOMER;
+        if ("ADMIN".equalsIgnoreCase(request.getRole())) {
+            role = User.Role.ADMIN;
+        }
 
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
+                .fullName(request.getFullName() != null ? request.getFullName() : request.getUsername())
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .role(role)

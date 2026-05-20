@@ -9,12 +9,15 @@ import java.time.LocalDateTime;
  * Product entity representing items in the shop inventory.
  * Supports flexible unit types (KG, Gram, Liter, etc.) 
  * with automatic price calculation based on quantity.
+ * 
+ * MULTI-USER: Each product belongs to an owner (Admin user/shop).
  */
 @Entity
 @Table(name = "products", indexes = {
     @Index(name = "idx_product_name", columnList = "name"),
     @Index(name = "idx_product_category", columnList = "category"),
-    @Index(name = "idx_product_code", columnList = "product_code")
+    @Index(name = "idx_product_code", columnList = "product_code"),
+    @Index(name = "idx_product_owner", columnList = "owner_id")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Product {
@@ -22,6 +25,12 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /** Owner admin — every product belongs to exactly one admin/shop */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private User owner;
 
     @Column(nullable = false, length = 200)
     private String name;
@@ -53,8 +62,8 @@ public class Product {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal pricePerUnit;
 
-    /** Manually assigned Product ID (e.g., 1, 101, P1001, SOAP01) — must be unique */
-    @Column(name = "product_code", length = 50, unique = true)
+    /** Manually assigned Product ID — unique per owner/shop (enforced in service) */
+    @Column(name = "product_code", length = 50)
     private String productCode;
 
     @Column(length = 500)

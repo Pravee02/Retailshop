@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Authentication controller for login and registration.
+ * Supports both Admin and Customer registration.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -27,9 +28,25 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /** Register a CUSTOMER account */
     @PostMapping("/register")
-    @Operation(summary = "Register a new user")
+    @Operation(summary = "Register a new customer account")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        // Force CUSTOMER role for /register (customer-facing)
+        request.setRole("CUSTOMER");
+        AuthResponse response = authService.register(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Register a new ADMIN / Shop account.
+     * This creates an isolated shop space — all products/sales/orders will be 
+     * scoped to this admin only.
+     */
+    @PostMapping("/register-admin")
+    @Operation(summary = "Register a new admin/shop account")
+    public ResponseEntity<AuthResponse> registerAdmin(@Valid @RequestBody RegisterRequest request) {
+        request.setRole("ADMIN");
         AuthResponse response = authService.register(request);
         return ResponseEntity.ok(response);
     }
