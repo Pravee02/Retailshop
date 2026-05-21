@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
  * MULTI-USER: Each purchase belongs to an owner (Admin user/shop).
  */
 @Entity
-@Table(name = "purchases")
+@Table(name = "purchases", indexes = {
+    @Index(name = "idx_purchase_owner", columnList = "owner_id"),
+    @Index(name = "idx_purchase_date", columnList = "purchaseDate")
+})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Purchase {
 

@@ -10,19 +10,18 @@ import java.util.HashMap;
  * Health check controller for monitoring and production availability testing.
  */
 @RestController
-@RequestMapping("/api/health")
 public class HealthController {
 
-    @GetMapping
+    @GetMapping({"/api/health", "/health"})
     public Map<String, String> check() {
         Map<String, String> status = new HashMap<>();
-        status.put("status", "UP");
+        status.put("status", "ok");
         status.put("timestamp", String.valueOf(System.currentTimeMillis()));
         status.put("service", "RetailShop Backend");
         return status;
     }
 
-    @GetMapping("/ping")
+    @GetMapping({"/api/health/ping", "/ping"})
     public String ping() {
         return "pong";
     }
