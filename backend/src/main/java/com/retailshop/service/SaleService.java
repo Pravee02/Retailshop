@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -141,9 +142,10 @@ public class SaleService {
             BigDecimal deductionQty = productService.convertQuantityForDeduction(product, itemReq.getQuantity(), itemReq.getUnit());
             product.setQuantity(product.getQuantity().subtract(deductionQty));
 
-            if (product.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
-                throw new BadRequestException("Insufficient stock for product: " + product.getName());
-            }
+            // Allow negative stock (overselling support) as per implementation plan to avoid digital order blockages.
+            // if (product.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
+            //     throw new BadRequestException("Insufficient stock for product: " + product.getName());
+            // }
 
             productRepository.save(product);
             productRepository.flush();
@@ -162,7 +164,7 @@ public class SaleService {
         sale.setSubtotal(subtotal);
 
         BigDecimal taxPercent = request.getTaxPercent() != null ? request.getTaxPercent() : BigDecimal.ZERO;
-        BigDecimal taxAmount = subtotal.multiply(taxPercent).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal taxAmount = subtotal.multiply(taxPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         sale.setTaxPercent(taxPercent);
         sale.setTaxAmount(taxAmount);
 
@@ -200,15 +202,29 @@ public class SaleService {
                 .map(this::toResponse);
     }
 
-    /** Generate unique bill number — scoped to owner so two shops can both have BILL-20250520-0001 */
+    /** Generate unique bill number — race-safe via MAX extraction instead of COUNT */
     private String generateBillNumber(User owner) {
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        long count = saleRepository.countSalesBetweenByOwner(
-                owner,
-                LocalDateTime.now().toLocalDate().atStartOfDay(),
-                LocalDateTime.now().toLocalDate().atTime(23, 59, 59));
-        return String.format("BILL-%s-%04d", dateStr, count + 1);
+        LocalDateTime dayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime dayEnd   = LocalDateTime.now().toLocalDate().atTime(23, 59, 59);
+
+        java.util.List<String> existing = saleRepository.findBillNumbersByOwnerAndDate(owner, dayStart, dayEnd);
+
+        int nextSeq = 1;
+        if (!existing.isEmpty()) {
+            // Bill format: BILL-OWNERID-YYYYMMDD-NNNN → extract NNNN from the first (highest ordered DESC) entry
+            String latest = existing.get(0);
+            try {
+                String seqPart = latest.substring(latest.lastIndexOf('-') + 1);
+                nextSeq = Integer.parseInt(seqPart) + 1;
+            } catch (Exception ignored) {
+                // If parsing fails fall back to count+1
+                nextSeq = existing.size() + 1;
+            }
+        }
+        return String.format("BILL-%d-%s-%04d", owner.getId(), dateStr, nextSeq);
     }
+
 
     private SaleResponse toResponse(Sale sale) {
         List<SaleResponse.SaleItemResponse> items = sale.getItems().stream()

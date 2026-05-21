@@ -31,8 +31,9 @@ public class ProductController {
     public ResponseEntity<Page<ProductResponse>> getAllProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String search) {
-        return ResponseEntity.ok(productService.getAllProducts(page, size, search));
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long shopId) {
+        return ResponseEntity.ok(productService.getAllProducts(page, size, search, shopId));
     }
 
     @GetMapping("/{id}")
@@ -70,8 +71,9 @@ public class ProductController {
 
     @GetMapping("/categories")
     @Operation(summary = "Get all product categories")
-    public ResponseEntity<List<String>> getCategories() {
-        return ResponseEntity.ok(productService.getCategories());
+    public ResponseEntity<List<String>> getCategories(
+            @RequestParam(required = false) Long shopId) {
+        return ResponseEntity.ok(productService.getCategories(shopId));
     }
 
     @GetMapping("/{id}/calculate-price")

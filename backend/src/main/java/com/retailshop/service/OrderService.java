@@ -34,6 +34,9 @@ public class OrderService {
     private UserRepository userRepository;
 
     @Autowired
+    private ShopRepository shopRepository;
+
+    @Autowired
     private SaleService saleService;
 
     @Autowired
@@ -41,12 +44,20 @@ public class OrderService {
 
     /**
      * Place a customer order.
-     * Note: Customer orders are currently not tied to a specific admin shop.
-     * In a real multi-shop system you would pass the shopId; here we set owner = null.
+     * Tied to a specific admin shop and optional authenticated customer user.
      */
     @Transactional
-    public CustomerOrder createOrder(OrderRequest request) {
+    public CustomerOrder createOrder(OrderRequest request, String customerUsername) {
         String orderNumber = "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS"));
+
+        Shop shop = shopRepository.findById(request.getShopId())
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found with ID: " + request.getShopId()));
+        User owner = shop.getOwner();
+
+        User customer = null;
+        if (customerUsername != null) {
+            customer = userRepository.findByUsername(customerUsername).orElse(null);
+        }
 
         CustomerOrder order = CustomerOrder.builder()
                 .orderNumber(orderNumber)
@@ -55,6 +66,9 @@ public class OrderService {
                 .customerAddress(request.getCustomerAddress())
                 .notes(request.getNotes())
                 .status(CustomerOrder.OrderStatus.PENDING)
+                .shop(shop)
+                .owner(owner)
+                .customer(customer)
                 .build();
 
         BigDecimal total = BigDecimal.ZERO;
@@ -114,13 +128,28 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    /** Get my orders (for customer) */
+    /** Get my orders (for customer) — optionally scoped to a specific shop */
     @Transactional(readOnly = true)
-    public java.util.List<CustomerOrder> getMyOrders(String username) {
+    public java.util.List<CustomerOrder> getMyOrders(String username, Long shopId) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return orderRepository.findByCustomerNameOrderByOrderDateDesc(user.getFullName());
+
+        if (shopId != null) {
+            // Shop-scoped: only orders this customer placed at the selected shop
+            Shop shop = shopRepository.findById(shopId).orElse(null);
+            if (shop != null && user != null) {
+                return orderRepository.findByCustomerAndShopOrderByOrderDateDesc(user, shop);
+            }
+        }
+        // Fallback: all orders for this customer
+        java.util.List<CustomerOrder> orders = orderRepository.findByCustomerOrderByOrderDateDesc(user);
+        if (orders.isEmpty()) {
+            // Fallback to legacy customer name matching
+            orders = orderRepository.findByCustomerNameOrderByOrderDateDesc(user.getFullName());
+        }
+        return orders;
     }
+
 
     /** Cancel my order (for customer) */
     @Transactional
@@ -130,7 +159,14 @@ public class OrderService {
         CustomerOrder order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
 
-        if (!order.getCustomerName().equals(user.getFullName())) {
+        boolean isAuthorized = false;
+        if (order.getCustomer() != null) {
+            isAuthorized = order.getCustomer().getId().equals(user.getId());
+        } else {
+            isAuthorized = order.getCustomerName().equals(user.getFullName());
+        }
+
+        if (!isAuthorized) {
             throw new BadRequestException("Not authorized to cancel this order");
         }
 

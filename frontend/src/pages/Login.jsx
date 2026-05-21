@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -9,12 +9,22 @@ import './Login.css';
 
 export default function Login() {
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const [view, setView] = useState('LOGIN'); // 'LOGIN' | 'REGISTER'
   const [formData, setFormData] = useState({ username: '', password: '', fullName: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'ADMIN') {
+        navigate('/dashboard');
+      } else {
+        navigate('/shop');
+      }
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,7 +35,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const response = await authAPI.login({ username: formData.username, password: formData.password });
+      const response = await authAPI.loginAdmin({ username: formData.username, password: formData.password });
       const { token, username, fullName, role } = response.data;
 
       if (role !== 'ADMIN') {
@@ -190,6 +200,14 @@ export default function Login() {
       <div className="login-bg-pattern"></div>
 
       <div className="login-container">
+        <button
+          className="btn btn-ghost"
+          style={{ position: 'absolute', top: '20px', left: '20px' }}
+          onClick={() => navigate('/auth')}
+        >
+          <FiArrowLeft /> Customer Portal / Home
+        </button>
+
         <div className="login-card">
           {/* Header */}
           <div className="login-header">

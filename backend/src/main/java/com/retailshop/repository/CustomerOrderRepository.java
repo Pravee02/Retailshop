@@ -29,6 +29,13 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
 
     List<CustomerOrder> findByCustomerNameOrderByOrderDateDesc(String customerName);
 
+    List<CustomerOrder> findByCustomerOrderByOrderDateDesc(User customer);
+
+    /** Get orders by authenticated customer scoped to a specific shop */
+    List<CustomerOrder> findByCustomerAndShopOrderByOrderDateDesc(User customer, com.retailshop.entity.Shop shop);
+
+
+
     @Query("SELECT o FROM CustomerOrder o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product WHERE o.id = :id")
     Optional<CustomerOrder> findByIdWithItems(@Param("id") Long id);
 }

@@ -37,6 +37,7 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/health/**").permitAll()
+                .requestMatchers("/api/shops/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                 // Customer portal - public product browsing

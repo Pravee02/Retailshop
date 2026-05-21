@@ -26,8 +26,11 @@ public class OrderController {
 
     @PostMapping
     @Operation(summary = "Place a customer order (public)")
-    public ResponseEntity<CustomerOrder> createOrder(@Valid @RequestBody OrderRequest request) {
-        return ResponseEntity.ok(orderService.createOrder(request));
+    public ResponseEntity<CustomerOrder> createOrder(
+            @Valid @RequestBody OrderRequest request,
+            java.security.Principal principal) {
+        String customerUsername = principal != null ? principal.getName() : null;
+        return ResponseEntity.ok(orderService.createOrder(request, customerUsername));
     }
 
     @GetMapping
@@ -47,10 +50,12 @@ public class OrderController {
     }
 
     @GetMapping("/my-orders")
-    @Operation(summary = "Get current customer's orders")
-    public ResponseEntity<java.util.List<CustomerOrder>> getMyOrders(java.security.Principal principal) {
+    @Operation(summary = "Get current customer's orders (optionally filtered by shopId)")
+    public ResponseEntity<java.util.List<CustomerOrder>> getMyOrders(
+            java.security.Principal principal,
+            @RequestParam(required = false) Long shopId) {
         if (principal == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(orderService.getMyOrders(principal.getName()));
+        return ResponseEntity.ok(orderService.getMyOrders(principal.getName(), shopId));
     }
 
     @PutMapping("/my-orders/{id}/cancel")

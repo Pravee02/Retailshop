@@ -3,8 +3,10 @@ package com.retailshop.service;
 import com.retailshop.dto.*;
 import com.retailshop.entity.Product;
 import com.retailshop.entity.User;
+import com.retailshop.entity.Shop;
 import com.retailshop.exception.*;
 import com.retailshop.repository.ProductRepository;
+import com.retailshop.repository.ShopRepository;
 import com.retailshop.security.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -26,21 +28,33 @@ public class ProductService {
     private ProductRepository productRepository;
 
     @Autowired
+    private ShopRepository shopRepository;
+
+    @Autowired
     private SecurityUtils securityUtils;
 
-    /**
-     * Get all active products for the current admin.
-     * Falls back to a public (owner-free) listing for the customer shop.
-     */
     @Transactional(readOnly = true)
-    public Page<ProductResponse> getAllProducts(int page, int size, String search) {
+    public Page<ProductResponse> getAllProducts(int page, int size, String search, Long shopId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
 
         // Try to get current user; if anonymous/not found use unscoped query (customer shop)
         User owner = tryGetCurrentUser();
 
         Page<Product> products;
-        if (owner != null && owner.getRole() == User.Role.ADMIN) {
+        if (shopId != null) {
+            // Customer / public storefront browsing: filter ONLY products belonging to this shop owner!
+            Shop shop = shopRepository.findById(shopId).orElse(null);
+            if (shop != null) {
+                User shopOwner = shop.getOwner();
+                if (search != null && !search.trim().isEmpty()) {
+                    products = productRepository.searchProductsByOwner(search.trim(), shopOwner, pageable);
+                } else {
+                    products = productRepository.findByActiveTrueAndOwner(shopOwner, pageable);
+                }
+            } else {
+                products = Page.empty();
+            }
+        } else if (owner != null && owner.getRole() == User.Role.ADMIN) {
             // Admin: show ONLY their own products
             if (search != null && !search.trim().isEmpty()) {
                 products = productRepository.searchProductsByOwner(search.trim(), owner, pageable);
@@ -48,7 +62,7 @@ public class ProductService {
                 products = productRepository.findByActiveTrueAndOwner(owner, pageable);
             }
         } else {
-            // Customer / public: show all active products (global catalog)
+            // Fallback to unscoped query (global catalog)
             if (search != null && !search.trim().isEmpty()) {
                 products = productRepository.searchProducts(search.trim(), pageable);
             } else {
@@ -71,6 +85,8 @@ public class ProductService {
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
         User owner = securityUtils.getCurrentUser();
+        Shop shop = shopRepository.findByOwner(owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found for admin: " + owner.getUsername()));
 
         // Validate Product ID uniqueness per owner
         if (request.getProductCode() != null && !request.getProductCode().isBlank()
@@ -80,6 +96,7 @@ public class ProductService {
 
         Product product = Product.builder()
                 .owner(owner)
+                .shop(shop)
                 .name(request.getName())
                 .localName(request.getLocalName())
                 .category(request.getCategory())
@@ -103,6 +120,8 @@ public class ProductService {
     public ProductResponse updateProduct(Long id, ProductRequest request) {
         User owner = securityUtils.getCurrentUser();
         Product product = findProductByIdAndOwner(id, owner);
+        Shop shop = shopRepository.findByOwner(owner)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found for admin: " + owner.getUsername()));
 
         // Validate Product ID uniqueness (exclude current product) per owner
         if (request.getProductCode() != null && !request.getProductCode().isBlank()
@@ -120,6 +139,7 @@ public class ProductService {
         product.setProductCode(request.getProductCode());
         product.setImageUrl(request.getImageUrl());
         product.setDescription(request.getDescription());
+        product.setShop(shop);
         if (request.getMinStockLevel() != null) {
             product.setMinStockLevel(request.getMinStockLevel());
         }
@@ -149,9 +169,17 @@ public class ProductService {
                 .map(this::toResponse).toList();
     }
 
-    /** Get all distinct categories — scoped to current admin */
+    /** Get all distinct categories — scoped to current admin, or shop-scoped for customer browsing */
     @Transactional(readOnly = true)
-    public List<String> getCategories() {
+    public List<String> getCategories(Long shopId) {
+        if (shopId != null) {
+            // Customer browsing: return categories belonging to this specific shop
+            Shop shop = shopRepository.findById(shopId).orElse(null);
+            if (shop != null) {
+                return productRepository.findDistinctCategoriesByOwner(shop.getOwner());
+            }
+            return List.of();
+        }
         User owner = tryGetCurrentUser();
         if (owner != null && owner.getRole() == User.Role.ADMIN) {
             return productRepository.findDistinctCategoriesByOwner(owner);

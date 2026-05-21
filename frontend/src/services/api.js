@@ -55,6 +55,7 @@ api.interceptors.response.use(
 // ---- Auth API ----
 export const authAPI = {
   login: (data) => api.post('auth/login', data),
+  loginAdmin: (data) => api.post('auth/admin/login', data),
   register: (data) => api.post('auth/register', data),
   registerAdmin: (data) => api.post('auth/register-admin', data),
 };
@@ -62,8 +63,8 @@ export const authAPI = {
 // ---- Product API ----
 let categoriesCache = null;
 export const productAPI = {
-  getAll: (page = 0, size = 20, search = '') =>
-    api.get('products', { params: { page, size, search } }),
+  getAll: (page = 0, size = 20, search = '', shopId = '') =>
+    api.get('products', { params: { page, size, search, shopId } }),
   getById: (id) => api.get(`products/${id}`),
   create: (data) => {
     categoriesCache = null; // Clear cache on change
@@ -78,14 +79,21 @@ export const productAPI = {
     return api.delete(`products/${id}`);
   },
   getLowStock: () => api.get('products/low-stock'),
-  getCategories: async () => {
-    if (categoriesCache) return categoriesCache;
-    const res = await api.get('products/categories');
-    categoriesCache = res;
+  getCategories: async (shopId) => {
+    const cacheKey = shopId ? `shop-${shopId}` : 'admin';
+    if (categoriesCache && categoriesCache.key === cacheKey) return categoriesCache.res;
+    const res = await api.get('products/categories', { params: shopId ? { shopId } : {} });
+    categoriesCache = { key: cacheKey, res };
     return res;
   },
   calculatePrice: (id, quantity, unit) =>
     api.get(`products/${id}/calculate-price`, { params: { quantity, unit } }),
+};
+
+// ---- Shop API ----
+export const shopAPI = {
+  getAll: () => api.get('shops'),
+  search: (keyword) => api.get('shops/search', { params: { keyword } }),
 };
 
 // ---- Sales API ----
@@ -109,7 +117,8 @@ export const orderAPI = {
     api.get('orders', { params: { page, size } }),
   updateStatus: (id, status) =>
     api.put(`orders/${id}/status`, null, { params: { status } }),
-  getMyOrders: () => api.get('orders/my-orders'),
+  getMyOrders: (shopId) => api.get('orders/my-orders', { params: shopId ? { shopId } : {} }),
+
   cancelMyOrder: (id) => api.put(`orders/my-orders/${id}/cancel`),
 };
 

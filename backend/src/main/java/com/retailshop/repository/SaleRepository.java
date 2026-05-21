@@ -18,6 +18,12 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
 
     Optional<Sale> findByBillNumber(String billNumber);
 
+    /** Find the highest bill number for this owner today — used for race-safe bill generation */
+    @Query("SELECT s.billNumber FROM Sale s WHERE s.owner = :owner AND s.saleDate >= :dayStart AND s.saleDate <= :dayEnd ORDER BY s.billNumber DESC")
+    java.util.List<String> findBillNumbersByOwnerAndDate(@Param("owner") User owner, @Param("dayStart") LocalDateTime dayStart, @Param("dayEnd") LocalDateTime dayEnd);
+
+
+
     // === Owner-scoped queries ===
 
     Page<Sale> findByOwnerOrderBySaleDateDesc(User owner, Pageable pageable);

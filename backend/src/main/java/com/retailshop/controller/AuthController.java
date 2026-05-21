@@ -22,9 +22,16 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    @Operation(summary = "Login with username and password")
+    @Operation(summary = "Login with username and password (Customer only)")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = authService.login(request);
+        AuthResponse response = authService.login(request, "CUSTOMER");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/admin/login")
+    @Operation(summary = "Login with username and password (Admin only)")
+    public ResponseEntity<AuthResponse> adminLogin(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request, "ADMIN");
         return ResponseEntity.ok(response);
     }
 

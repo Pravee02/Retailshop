@@ -15,11 +15,12 @@ import java.util.Optional;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    /** Search by name (partial) or productCode (exact) — scoped to owner */
+    /** Search by name (partial) OR productCode (partial) — scoped to owner */
     @Query("SELECT p FROM Product p WHERE p.active = true AND p.owner = :owner AND " +
            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(p.productCode) = LOWER(:keyword))")
+           "LOWER(p.productCode) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Product> searchProductsByOwner(@Param("keyword") String keyword, @Param("owner") User owner, Pageable pageable);
+
 
     /** Exact lookup by product ID scoped to owner */
     Page<Product> findByIdAndActiveTrueAndOwner(Long id, User owner, Pageable pageable);
@@ -62,8 +63,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // === Legacy (unscoped) queries kept for backward compatibility ===
     @Query("SELECT p FROM Product p WHERE p.active = true AND " +
            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(p.productCode) = LOWER(:keyword))")
+           "LOWER(p.productCode) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Product> searchProducts(@Param("keyword") String keyword, Pageable pageable);
+
 
     Page<Product> findByIdAndActiveTrue(Long id, Pageable pageable);
     Page<Product> findByActiveTrue(Pageable pageable);

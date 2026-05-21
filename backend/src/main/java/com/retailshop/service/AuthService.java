@@ -2,8 +2,10 @@ package com.retailshop.service;
 
 import com.retailshop.dto.*;
 import com.retailshop.entity.User;
+import com.retailshop.entity.Shop;
 import com.retailshop.exception.BadRequestException;
 import com.retailshop.repository.UserRepository;
+import com.retailshop.repository.ShopRepository;
 import com.retailshop.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.*;
@@ -26,6 +28,9 @@ public class AuthService {
     private UserRepository userRepository;
 
     @Autowired
+    private ShopRepository shopRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -33,13 +38,23 @@ public class AuthService {
 
     /** Authenticate user and return JWT token */
     public AuthResponse login(LoginRequest request) {
+        return login(request, null);
+    }
+
+    /** Authenticate user and return JWT token with optional role constraint */
+    public AuthResponse login(LoginRequest request, String requiredRole) {
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        String token = tokenProvider.generateToken(authentication);
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadRequestException("User not found"));
+
+        if (requiredRole != null && !user.getRole().name().equalsIgnoreCase(requiredRole)) {
+            throw new BadRequestException("Access denied. Invalid credentials for this login portal.");
+        }
+
+        String token = tokenProvider.generateToken(authentication);
 
         return AuthResponse.builder()
                 .token(token)
@@ -84,6 +99,17 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
+        // Auto-create shop for ADMIN user
+        if (role == User.Role.ADMIN) {
+            Shop shop = Shop.builder()
+                    .owner(user)
+                    .name(user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName() : user.getUsername() + " Store")
+                    .phone(user.getPhone())
+                    .active(true)
+                    .build();
+            shopRepository.save(shop);
+        }
 
         String token = tokenProvider.generateToken(user.getUsername());
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { productAPI, orderAPI } from '../services/api';
+import { productAPI, orderAPI, shopAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
@@ -30,6 +30,14 @@ export default function CustomerShop() {
   const [myOrders, setMyOrders] = useState([]);
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
 
+  // Shop selection states
+  const [selectedShop, setSelectedShop] = useState(() => {
+    const stored = localStorage.getItem('selectedShop');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [shops, setShops] = useState([]);
+  const [shopSearch, setShopSearch] = useState('');
+  const [loadingShops, setLoadingShops] = useState(false);
 
   useEffect(() => {
     if (user && !orderForm.customerName) {
@@ -37,13 +45,72 @@ export default function CustomerShop() {
     }
   }, [user]);
 
-  useEffect(() => { loadProducts(); }, [page, search, selectedCat]);
-  useEffect(() => { productAPI.getCategories().then(r => setCategories(r.data)).catch(() => {}); }, []);
+  // Debounced shop search/load
+  useEffect(() => {
+    if (!selectedShop) {
+      const delayDebounceFn = setTimeout(() => {
+        loadShops();
+      }, 300);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [selectedShop, shopSearch]);
+
+  // Scoped product load
+  useEffect(() => {
+    if (selectedShop) {
+      loadProducts();
+    }
+  }, [page, search, selectedCat, selectedShop]);
+
+  // Scoped categories load — only categories from the selected shop
+  useEffect(() => {
+    if (selectedShop) {
+      productAPI.getCategories(selectedShop.id).then(r => setCategories(r.data)).catch(() => {});
+    }
+  }, [selectedShop]);
+
+  const loadShops = async () => {
+    setLoadingShops(true);
+    try {
+      const res = shopSearch.trim().length >= 2
+        ? await shopAPI.search(shopSearch)
+        : await shopAPI.getAll();
+      setShops(res.data || []);
+    } catch (e) {
+      console.error('Load shops error:', e);
+      toast.error('Failed to load shops');
+    } finally {
+      setLoadingShops(false);
+    }
+  };
+
+  const handleSelectShop = (shop) => {
+    localStorage.setItem('selectedShop', JSON.stringify(shop));
+    setSelectedShop(shop);
+    clearCart();
+    setPage(0);
+    setSearch('');
+    setSelectedCat('');
+  };
+
+  const handleChangeShop = () => {
+    if (cartItems.length > 0) {
+      if (!window.confirm('Changing shops will clear your current cart. Do you want to proceed?')) {
+        return;
+      }
+    }
+    clearCart();
+    localStorage.removeItem('selectedShop');
+    setSelectedShop(null);
+    setProducts([]);
+    setShopSearch('');
+  };
 
   const loadProducts = async () => {
+    if (!selectedShop) return;
     setLoading(true);
     try {
-      const res = await productAPI.getAll(page, 20, selectedCat || search);
+      const res = await productAPI.getAll(page, 20, selectedCat || search, selectedShop.id);
       setProducts(res.data?.content || []);
       setTotalPages(res.data?.totalPages || 0);
     } catch (e) { 
@@ -64,9 +131,11 @@ export default function CustomerShop() {
 
   const handlePlaceOrder = async () => {
     if (!orderForm.customerName) { toast.error('Please enter your name'); return; }
+    if (!selectedShop) { toast.error('Please select a shop first'); return; }
     setSubmitting(true);
     try {
       await orderAPI.create({
+        shopId: selectedShop.id,
         customerName: orderForm.customerName, customerPhone: orderForm.customerPhone,
         customerAddress: orderForm.customerAddress,
         items: (cartItems || []).map(i => ({ productId: i.product?.id, quantity: i.quantity, unit: i.unit || i.product?.unitType })),
@@ -83,7 +152,7 @@ export default function CustomerShop() {
 
   const handleShowMyOrders = async () => {
     try {
-      const res = await orderAPI.getMyOrders();
+      const res = await orderAPI.getMyOrders(selectedShop?.id);
       setMyOrders(res.data || []);
       setShowMyOrders(true);
     } catch (e) {
@@ -91,6 +160,7 @@ export default function CustomerShop() {
       toast.error('Failed to load your orders');
     }
   };
+
 
   const handleCancelMyOrder = async (id) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
@@ -148,12 +218,24 @@ export default function CustomerShop() {
       <header className="shop-header">
         <div className="shop-brand">
           <Link to="/" className="shop-logo">🛒</Link>
-          <h1>RetailShop</h1>
+          <div className="shop-brand-titles">
+            <h1 style={{ display: 'inline-block' }}>RetailShop</h1>
+            {selectedShop && (
+              <span className="selected-shop-badge animate-fade-in" onClick={handleChangeShop} title="Click to change store">
+                🏪 {selectedShop.name} <span className="change-hint">(change)</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="shop-header-actions">
           {/* Desktop Actions */}
           <div className="desktop-actions">
+            {selectedShop && (
+              <button className="btn btn-ghost btn-sm" onClick={handleChangeShop} style={{ marginRight: '8px' }}>
+                🔄 Change Store
+              </button>
+            )}
             {!isAuthenticated() && (
               <>
                 <Link to="/customer/login" className="btn btn-ghost btn-sm">
@@ -253,149 +335,209 @@ export default function CustomerShop() {
         </div>
       )}
 
+      {!selectedShop ? (
+        <div className="shop-selection-container">
+          <div className="shop-selection-card animate-fade-in">
+            <div className="shop-selection-header">
+              <div className="shop-selection-logo">🏬</div>
+              <h2>Choose Your Storefront</h2>
+              <p>Search and select your local shop to view their products and place orders!</p>
+            </div>
 
-      <div className="shop-hero"><h2>{t('shop.title')}</h2><p>{t('shop.subtitle')}</p>
-        <div className="shop-search-bar"><FiSearch className="search-icon" />
-          <input type="text" placeholder="Search by Product Name or ID..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); setSelectedCat(''); }} />
-        </div>
-      </div>
+            <div className="shop-search-bar selection-search">
+              <FiSearch className="search-icon" />
+              <input 
+                type="text" 
+                placeholder="Search shops by name or owner..." 
+                value={shopSearch} 
+                onChange={e => setShopSearch(e.target.value)} 
+              />
+            </div>
 
-      <div className="shop-categories">
-        <button className={`cat-chip ${!selectedCat ? 'active' : ''}`} onClick={() => { setSelectedCat(''); setPage(0); }}>All</button>
-        {(categories || []).map(c => <button key={c} className={`cat-chip ${selectedCat === c ? 'active' : ''}`} onClick={() => { setSelectedCat(c); setSearch(''); setPage(0); }}>{c}</button>)}
-      </div>
-
-      <div className="shop-products">
-        {loading ? <div className="loading-overlay"><div className="spinner"></div></div> : products.length === 0 ? <div className="empty-state"><h3>No products found</h3></div> : (
-          <div className="product-grid">
-            {products.map(p => (
-              <div key={p.id} className="product-card">
-                <div className="product-card-image"><div className="product-placeholder">📦</div>{p.outOfStock && <div className="out-of-stock-overlay">Out of Stock</div>}</div>
-                <div className="product-card-body">
-                  <span className="product-card-category">{p.category}</span>
-                  <h3 className="product-card-name">{p.name}</h3>
-                  {p.localName && <p className="product-card-local">{p.localName}</p>}
-                  <div className="product-card-price"><span className="price-main">₹{p.pricePerUnit}</span><span className="price-unit">/ {p.unitType}</span></div>
-                  <div className="product-card-qty-row">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      inputMode="decimal"
-                      className="form-input product-qty-input"
-                      placeholder="1"
-                      value={qtyInputs[p.id] || ''}
-                      onChange={e => setQtyInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
-                    />
-                    <span className="product-qty-unit">{p.unitType}</span>
-                  </div>
-                  {qtyInputs[p.id] && parseFloat(qtyInputs[p.id]) > 0 && (
-                    <div className="product-card-calc">
-                      = ₹{(parseFloat(qtyInputs[p.id]) * p.pricePerUnit).toFixed(2)}
+            <div className="shop-list">
+              {loadingShops ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Searching for storefronts...</p>
+                </div>
+              ) : shops.length === 0 ? (
+                <div className="empty-state" style={{ padding: 'var(--space-md)' }}>
+                  <p>No active shops found. Try another search term!</p>
+                </div>
+              ) : (
+                shops.map(s => (
+                  <div key={s.id} className="shop-item-card" onClick={() => handleSelectShop(s)}>
+                    <div className="shop-item-icon">🏬</div>
+                    <div className="shop-item-info">
+                      <h3>{s.name}</h3>
+                      <p className="shop-owner">Manager: {s.owner?.fullName || 'Shopkeeper'}</p>
+                      {s.address && <p className="shop-address">📍 {s.address}</p>}
                     </div>
-                  )}
-                  <button className="btn btn-primary w-full" onClick={() => handleAddToCart(p)} disabled={p.outOfStock}><FiPlus /> {t('shop.addToCart')}</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {totalPages > 1 && <div className="pagination">
-        <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>Prev</button>
-        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => <button key={i} className={page === i ? 'active' : ''} onClick={() => setPage(i)}>{i + 1}</button>)}
-        <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>Next</button>
-      </div>}
-
-      {showCart && <div className="cart-overlay" onClick={() => setShowCart(false)}>
-        <div className="cart-drawer" onClick={e => e.stopPropagation()}>
-          <div className="cart-header"><h2><FiShoppingCart /> Cart ({cartCount})</h2><button className="btn btn-ghost btn-icon" onClick={() => setShowCart(false)}><FiX /></button></div>
-          <div className="cart-items">
-            {!cartItems || cartItems.length === 0 ? <div className="empty-state" style={{padding:40}}><p>Cart is empty</p></div> :
-              cartItems.map(item => (
-                <div key={`${item.product?.id}-${item.unit}`} className="cart-item">
-                  <div className="cart-item-info"><h4>{item.product?.name || 'Unknown Product'}</h4><p>₹{item.product?.pricePerUnit || 0}/{item.unit}</p></div>
-                  <div className="cart-item-qty">
-                    <button onClick={() => item.product && updateQuantity(item.product.id, item.unit, Math.max(0.01, parseFloat((item.quantity - 0.25).toFixed(3))))}><FiMinus /></button>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      inputMode="decimal"
-                      className="cart-qty-input"
-                      value={item.quantity}
-                      onChange={e => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val) && val > 0 && item.product) updateQuantity(item.product.id, item.unit, parseFloat(val.toFixed(3)));
-                      }}
-                    />
-                    <button onClick={() => item.product && updateQuantity(item.product.id, item.unit, parseFloat((item.quantity + 0.25).toFixed(3)))}><FiPlus /></button>
-                  </div>
-                  <div className="cart-item-total">₹{((item.product?.pricePerUnit || 0) * item.quantity).toFixed(2)}</div>
-                  <button className="btn btn-ghost btn-sm text-danger" onClick={() => item.product && removeFromCart(item.product.id, item.unit)}><FiTrash2 /></button>
-                </div>
-              ))
-            }
-          </div>
-          {cartItems.length > 0 && <div className="cart-footer">
-            <div className="cart-total"><span>Total:</span><span>₹{cartTotal.toFixed(2)}</span></div>
-            {!showOrderForm ? <button className="btn btn-success btn-lg w-full" onClick={() => setShowOrderForm(true)}><FiSend /> Place Order</button> :
-              <div className="order-form">
-                <div className="form-group"><label className="form-label"><FiUser /> Name *</label><input className="form-input" value={orderForm.customerName} onChange={e => setOrderForm({...orderForm, customerName: e.target.value})} placeholder="Your name" /></div>
-                <div className="form-group"><label className="form-label"><FiPhone /> Phone</label><input className="form-input" value={orderForm.customerPhone} onChange={e => setOrderForm({...orderForm, customerPhone: e.target.value})} placeholder="Phone" /></div>
-                <div className="form-group"><label className="form-label"><FiMapPin /> Address</label><input className="form-input" value={orderForm.customerAddress} onChange={e => setOrderForm({...orderForm, customerAddress: e.target.value})} placeholder="Address" /></div>
-                <button className="btn btn-success btn-lg w-full" onClick={handlePlaceOrder} disabled={submitting}>{submitting ? 'Placing...' : `Order — ₹${cartTotal.toFixed(2)}`}</button>
-              </div>
-            }
-          </div>}
-        </div>
-      </div>}
-
-      {/* My Orders Drawer */}
-      {showMyOrders && <div className="cart-overlay" onClick={() => setShowMyOrders(false)}>
-        <div className="cart-drawer" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
-          <div className="cart-header">
-            <h2>📋 My Orders</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => setShowMyOrders(false)}><FiX /></button>
-          </div>
-          <div className="cart-items" style={{ padding: 'var(--space-md)' }}>
-            {myOrders.length === 0 ? <p>You have not placed any orders yet.</p> :
-              myOrders.map(order => (
-                <div key={order.id} style={{ background: 'var(--bg-card)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-md)', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
-                    <strong>{order.orderNumber}</strong>
-                    <span className={`badge ${order.status === 'PENDING' ? 'badge-warning' : order.status === 'COMPLETED' ? 'badge-success' : 'badge-primary'}`}>{order.status}</span>
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 'var(--space-xs)' }}>
-                    {new Date(order.orderDate).toLocaleString('en-IN')}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', marginBottom: 'var(--space-sm)' }}>
-                    {order.items?.length || 0} items | <strong>₹{Number(order.totalAmount).toFixed(2)}</strong>
-                  </div>
-                  {order.items && order.items.length > 0 && (
-                    <ul style={{ fontSize: '0.85rem', paddingLeft: '20px', color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
-                      {(order.items || []).map(item => (
-                        <li key={item.id}>{item.productName} ({item.quantity} {item.unit})</li>
-                      ))}
-                    </ul>
-                  )}
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                    <button className="btn btn-outline btn-sm" onClick={() => handlePrintOrder(order)}>
-                      🖨️ Print
+                    <button className="btn btn-primary shop-enter-btn">
+                      Enter Shop ➔
                     </button>
-                    {order.status === 'PENDING' && (
-                      <button className="btn btn-ghost btn-sm text-danger" onClick={() => handleCancelMyOrder(order.id)}>
-                        Cancel Order
-                      </button>
-                    )}
                   </div>
-                </div>
-              ))
-            }
+                ))
+              )}
+            </div>
           </div>
         </div>
-      </div>}
+      ) : (
+        <>
+          <div className="shop-hero">
+            <h2>{t('shop.title')}</h2>
+            <p>{t('shop.subtitle')}</p>
+            <div className="selected-shop-hero-badge" style={{ marginBottom: 'var(--space-md)' }}>
+              <span style={{ background: 'var(--bg-secondary)', padding: '8px 16px', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: 'var(--font-sm)', fontWeight: 600 }}>
+                🏪 Shopping at: <strong style={{ color: 'var(--primary-light)' }}>{selectedShop.name}</strong>
+                <button className="btn btn-ghost btn-sm text-danger" onClick={handleChangeShop} style={{ padding: '2px 8px', fontSize: '0.8rem', marginLeft: '4px' }}>
+                  (Change Store)
+                </button>
+              </span>
+            </div>
+            <div className="shop-search-bar"><FiSearch className="search-icon" />
+              <input type="text" placeholder="Search by Product Name or ID..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); setSelectedCat(''); }} />
+            </div>
+          </div>
+
+          <div className="shop-categories">
+            <button className={`cat-chip ${!selectedCat ? 'active' : ''}`} onClick={() => { setSelectedCat(''); setPage(0); }}>All</button>
+            {(categories || []).map(c => <button key={c} className={`cat-chip ${selectedCat === c ? 'active' : ''}`} onClick={() => { setSelectedCat(c); setSearch(''); setPage(0); }}>{c}</button>)}
+          </div>
+
+          <div className="shop-products">
+            {loading ? <div className="loading-overlay"><div className="spinner"></div></div> : products.length === 0 ? <div className="empty-state"><h3>No products found</h3></div> : (
+              <div className="product-grid">
+                {products.map(p => (
+                  <div key={p.id} className="product-card">
+                    <div className="product-card-image"><div className="product-placeholder">📦</div>{p.outOfStock && <div className="out-of-stock-overlay">Out of Stock</div>}</div>
+                    <div className="product-card-body">
+                      <span className="product-card-category">{p.category}</span>
+                      <h3 className="product-card-name">{p.name}</h3>
+                      {p.localName && <p className="product-card-local">{p.localName}</p>}
+                      <div className="product-card-price"><span className="price-main">₹{p.pricePerUnit}</span><span className="price-unit">/ {p.unitType}</span></div>
+                      <div className="product-card-qty-row">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          inputMode="decimal"
+                          className="form-input product-qty-input"
+                          placeholder="1"
+                          value={qtyInputs[p.id] || ''}
+                          onChange={e => setQtyInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
+                        />
+                        <span className="product-qty-unit">{p.unitType}</span>
+                      </div>
+                      {qtyInputs[p.id] && parseFloat(qtyInputs[p.id]) > 0 && (
+                        <div className="product-card-calc">
+                          = ₹{(parseFloat(qtyInputs[p.id]) * p.pricePerUnit).toFixed(2)}
+                        </div>
+                      )}
+                      <button className="btn btn-primary w-full" onClick={() => handleAddToCart(p)} disabled={p.outOfStock}><FiPlus /> {t('shop.addToCart')}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {totalPages > 1 && <div className="pagination">
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>Prev</button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => <button key={i} className={page === i ? 'active' : ''} onClick={() => setPage(i)}>{i + 1}</button>)}
+            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>Next</button>
+          </div>}
+
+          {showCart && <div className="cart-overlay" onClick={() => setShowCart(false)}>
+            <div className="cart-drawer" onClick={e => e.stopPropagation()}>
+              <div className="cart-header"><h2><FiShoppingCart /> Cart ({cartCount})</h2><button className="btn btn-ghost btn-icon" onClick={() => setShowCart(false)}><FiX /></button></div>
+              <div className="cart-items">
+                {!cartItems || cartItems.length === 0 ? <div className="empty-state" style={{ padding: 40 }}><p>Cart is empty</p></div> :
+                  cartItems.map(item => (
+                    <div key={`${item.product?.id}-${item.unit}`} className="cart-item">
+                      <div className="cart-item-info"><h4>{item.product?.name || 'Unknown Product'}</h4><p>₹{item.product?.pricePerUnit || 0}/{item.unit}</p></div>
+                      <div className="cart-item-qty">
+                        <button onClick={() => item.product && updateQuantity(item.product.id, item.unit, Math.max(0.01, parseFloat((item.quantity - 0.25).toFixed(3))))}><FiMinus /></button>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          inputMode="decimal"
+                          className="cart-qty-input"
+                          value={item.quantity}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val > 0 && item.product) updateQuantity(item.product.id, item.unit, parseFloat(val.toFixed(3)));
+                          }}
+                        />
+                        <button onClick={() => item.product && updateQuantity(item.product.id, item.unit, parseFloat((item.quantity + 0.25).toFixed(3)))}><FiPlus /></button>
+                      </div>
+                      <div className="cart-item-total">₹{((item.product?.pricePerUnit || 0) * item.quantity).toFixed(2)}</div>
+                      <button className="btn btn-ghost btn-sm text-danger" onClick={() => item.product && removeFromCart(item.product.id, item.unit)}><FiTrash2 /></button>
+                    </div>
+                  ))
+                }
+              </div>
+              {cartItems.length > 0 && <div className="cart-footer">
+                <div className="cart-total"><span>Total:</span><span>₹{cartTotal.toFixed(2)}</span></div>
+                {!showOrderForm ? <button className="btn btn-success btn-lg w-full" onClick={() => setShowOrderForm(true)}><FiSend /> Place Order</button> :
+                  <div className="order-form">
+                    <div className="form-group"><label className="form-label"><FiUser /> Name *</label><input className="form-input" value={orderForm.customerName} onChange={e => setOrderForm({ ...orderForm, customerName: e.target.value })} placeholder="Your name" /></div>
+                    <div className="form-group"><label className="form-label"><FiPhone /> Phone</label><input className="form-input" value={orderForm.customerPhone} onChange={e => setOrderForm({ ...orderForm, customerPhone: e.target.value })} placeholder="Phone" /></div>
+                    <div className="form-group"><label className="form-label"><FiMapPin /> Address</label><input className="form-input" value={orderForm.customerAddress} onChange={e => setOrderForm({ ...orderForm, customerAddress: e.target.value })} placeholder="Address" /></div>
+                    <button className="btn btn-success btn-lg w-full" onClick={handlePlaceOrder} disabled={submitting}>{submitting ? 'Placing...' : `Order — ₹${cartTotal.toFixed(2)}`}</button>
+                  </div>
+                }
+              </div>}
+            </div>
+          </div>}
+
+          {/* My Orders Drawer */}
+          {showMyOrders && <div className="cart-overlay" onClick={() => setShowMyOrders(false)}>
+            <div className="cart-drawer" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
+              <div className="cart-header">
+                <h2>📋 My Orders</h2>
+                <button className="btn btn-ghost btn-icon" onClick={() => setShowMyOrders(false)}><FiX /></button>
+              </div>
+              <div className="cart-items" style={{ padding: 'var(--space-md)' }}>
+                {myOrders.length === 0 ? <p>You have not placed any orders yet.</p> :
+                  myOrders.map(order => (
+                    <div key={order.id} style={{ background: 'var(--bg-card)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-md)', border: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
+                        <strong>{order.orderNumber}</strong>
+                        <span className={`badge ${order.status === 'PENDING' ? 'badge-warning' : order.status === 'COMPLETED' ? 'badge-success' : 'badge-primary'}`}>{order.status}</span>
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 'var(--space-xs)' }}>
+                        {new Date(order.orderDate).toLocaleString('en-IN')}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', marginBottom: 'var(--space-sm)' }}>
+                        {order.items?.length || 0} items | <strong>₹{Number(order.totalAmount).toFixed(2)}</strong>
+                      </div>
+                      {order.items && order.items.length > 0 && (
+                        <ul style={{ fontSize: '0.85rem', paddingLeft: '20px', color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
+                          {(order.items || []).map(item => (
+                            <li key={item.id}>{item.productName} ({item.quantity} {item.unit})</li>
+                          ))}
+                        </ul>
+                      )}
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                        <button className="btn btn-outline btn-sm" onClick={() => handlePrintOrder(order)}>
+                          🖨️ Print
+                        </button>
+                        {order.status === 'PENDING' && (
+                          <button className="btn btn-ghost btn-sm text-danger" onClick={() => handleCancelMyOrder(order.id)}>
+                            Cancel Order
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          </div>}
+        </>
+      )}
     </div>
   );
 }

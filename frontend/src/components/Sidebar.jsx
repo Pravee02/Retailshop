@@ -17,7 +17,6 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
   };
 
   const toggleLanguage = () => {
@@ -32,7 +31,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { path: '/billing', icon: <FiShoppingCart />, label: t('nav.billing') },
     { path: '/inventory', icon: <FiBarChart2 />, label: t('nav.inventory') },
     { path: '/orders', icon: <FiClipboard />, label: t('nav.orders') },
-    { path: '/shop', icon: <FiShoppingBag />, label: t('nav.shop') },
+    { path: '/admin/shop', icon: <FiShoppingBag />, label: t('nav.shop') },
   ];
 
   return (

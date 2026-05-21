@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -11,13 +11,23 @@ import './Landing.css';
 
 export default function CustomerAuth() {
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const [view, setView] = useState('LANDING'); // 'LANDING', 'LOGIN', 'REGISTER'
   const [formData, setFormData] = useState({ name: '', password: '', phone: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'ADMIN') {
+        navigate('/dashboard');
+      } else {
+        navigate('/shop');
+      }
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +42,9 @@ export default function CustomerAuth() {
         const response = await authAPI.login({ username: formData.name, password: formData.password });
         const { token, username, fullName, role } = response.data || {};
         if (!token) throw new Error('Invalid response from server');
+        if (role !== 'CUSTOMER') {
+          throw new Error('Access denied. Please use the Admin Login portal.');
+        }
         login({ username, fullName, role }, token);
         toast.success(`Welcome back, ${fullName || username}!`);
       } else {

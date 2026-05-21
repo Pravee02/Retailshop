@@ -19,34 +19,46 @@ export default function Inventory() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadData();
+    loadStaticData();
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
   }, [page, search]);
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
+  const loadStaticData = async () => {
     try {
-      // Use individual try-catches or handled Promise.all to prevent one failure from breaking everything
-      const [prodRes, lowRes, dashRes] = await Promise.all([
-        productAPI.getAll(page, 20, search).catch(err => { console.error('Products failed', err); return { data: { content: [], totalPages: 0 } }; }),
+      const [lowRes, dashRes] = await Promise.all([
         productAPI.getLowStock().catch(err => { console.error('Low stock failed', err); return { data: [] }; }),
         dashboardAPI.getData().catch(err => { console.error('Dashboard failed', err); return { data: null }; }),
       ]);
-      
-      setProducts(prodRes.data.content || []);
-      setTotalPages(prodRes.data.totalPages || 0);
       setLowStock(lowRes.data || []);
       setDashData(dashRes.data);
+    } catch (e) {
+      console.error('Failed to load static dashboard analytics:', e);
+    }
+  };
 
-      if (!prodRes.data.content.length && !dashRes.data) {
-        throw new Error('Could not connect to the server. Please check your internet or retry.');
-      }
+  const loadProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await productAPI.getAll(page, 20, search);
+      setProducts(res.data?.content || []);
+      setTotalPages(res.data?.totalPages || 0);
     } catch (error) {
-      setError(error.message || 'Failed to load inventory data');
-      toast.error('Failed to load inventory data');
+      console.error('Products load failed', error);
+      setError(error.message || 'Failed to load products');
+      toast.error('Failed to load products');
+      setProducts([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    loadStaticData();
+    loadProducts();
   };
 
   const getStockBadge = (product) => {
@@ -157,7 +169,7 @@ export default function Inventory() {
           <div className="empty-icon text-danger"><FiXCircle /></div>
           <h3>Connection Error</h3>
           <p className="text-muted">{error}</p>
-          <button className="btn btn-primary mt-md" onClick={loadData}>Retry Loading</button>
+          <button className="btn btn-primary mt-md" onClick={handleRetry}>Retry Loading</button>
         </div>
       ) : (
         /* Inventory Table */

@@ -14,7 +14,11 @@ import java.util.List;
  * MULTI-USER: Each order belongs to an owner (Admin user/shop).
  */
 @Entity
-@Table(name = "customer_orders")
+@Table(name = "customer_orders", indexes = {
+    @Index(name = "idx_order_owner", columnList = "owner_id"),
+    @Index(name = "idx_order_shop", columnList = "shop_id"),
+    @Index(name = "idx_order_customer", columnList = "customer_id")
+})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CustomerOrder {
 
@@ -25,8 +29,20 @@ public class CustomerOrder {
     /** Owner admin — which shop received this order */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User owner;
+
+    /** Shop storefront */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shop_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private Shop shop;
+
+    /** Customer User account (if authenticated) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private User customer;
 
     @Column(nullable = false, unique = true, length = 30)
     private String orderNumber;

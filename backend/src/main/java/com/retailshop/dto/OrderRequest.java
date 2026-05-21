@@ -9,6 +9,9 @@ import java.util.List;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor
 public class OrderRequest {
 
+    @NotNull(message = "Shop ID is required")
+    private Long shopId;
+
     @NotBlank(message = "Customer name is required")
     private String customerName;
 

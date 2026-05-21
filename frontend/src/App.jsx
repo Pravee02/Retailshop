@@ -12,6 +12,7 @@ const Billing = lazy(() => import('./pages/Billing'));
 const Inventory = lazy(() => import('./pages/Inventory'));
 const Orders = lazy(() => import('./pages/Orders'));
 const CustomerShop = lazy(() => import('./pages/CustomerShop'));
+const AdminShop = lazy(() => import('./pages/AdminShop'));
 const CustomerAuth = lazy(() => import('./pages/CustomerAuth'));
 
 function ProtectedRoute({ children, adminOnly = false }) {
@@ -26,8 +27,13 @@ function ProtectedRoute({ children, adminOnly = false }) {
     );
   }
   
-  if (!user) return <Navigate to="/auth" replace />;
-  if (adminOnly && user.role !== 'ADMIN') return <Navigate to="/auth" replace />;
+  if (!user) {
+    return <Navigate to={adminOnly ? "/login" : "/auth"} replace />;
+  }
+  
+  if (adminOnly && user.role !== 'ADMIN') {
+    return <Navigate to="/shop" replace />;
+  }
   
   return children;
 }
@@ -87,6 +93,9 @@ export default function App() {
             } />
             <Route path="/orders" element={
               <ProtectedRoute adminOnly><Orders /></ProtectedRoute>
+            } />
+            <Route path="/admin/shop" element={
+              <ProtectedRoute adminOnly><AdminShop /></ProtectedRoute>
             } />
             
             {/* Default redirect */}
